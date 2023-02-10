@@ -17,29 +17,29 @@ TASK_JSON: dict = {
 
 class TestTaskAction(unittest.TestCase):
 
-    def setUp(self):
+    def test_post_get_put_delete(self):
+        # Post
         post_response = requests.post(TASKS_URL, json = TASK_JSON)
         self.assertIn(post_response.status_code, [200,201])
         self.assertIsInstance(post_response.json(), dict)
-        self.id = post_response.json()['id']
-        self.assertIsInstance(self.id, int)
+        id = post_response.json()['id']
+        self.assertIsInstance(id, int)
 
-    def test_get_all(self):
+        # Get all:
         get_all_response = requests.get(TASKS_URL)
         self.assertEqual(get_all_response.status_code, 200)
         self.assertIsInstance(get_all_response.json(), dict)
         self.assertIn('tasks', get_all_response.json())
         self.assertIsInstance(get_all_response.json()['tasks'], list)
-    
-    def test_get(self):
-        task_url = TASKS_URL + '/' + str(self.id)
+
+        # Get task
+        task_url = TASKS_URL + '/' + str(id)
         get_response = requests.get(task_url)
         self.assertEqual(get_response.status_code, 200)
         response_task_json = get_response.json()
         response_task_json['inputs'] = json.loads(response_task_json['inputs'])
         self.assertEqual(TASK_JSON, response_task_json)
 
-    def test_put(self):
         # Put task
         new_task_json = {
             'inputs': {
@@ -50,7 +50,6 @@ class TestTaskAction(unittest.TestCase):
                 }
             }
         }
-        task_url = TASKS_URL + '/' + str(self.id)
         put_response = requests.put(task_url, json = new_task_json)
         self.assertEqual(put_response.status_code, 200)
         self.assertEqual({'message': 'Task updated'}, put_response.json())
@@ -60,13 +59,10 @@ class TestTaskAction(unittest.TestCase):
         response_task_json['inputs'] = json.loads(response_task_json['inputs'])
         self.assertEqual(new_task_json, response_task_json)
 
-    def tearDown(self):
         # Delete task
-        task_url = TASKS_URL + '/' + str(self.id)
         delete_response = requests.delete(task_url)
         self.assertEqual(delete_response.status_code, 200)
         self.assertEqual({'message': 'Task deleted'}, delete_response.json())
-
 
 if __name__ == '__main__':
     unittest.main()

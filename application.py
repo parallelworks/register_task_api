@@ -25,6 +25,8 @@ class Task(db.Model):
 
     def __repr__(self):
         return f"{self.id} - {self.inputs}"
+    
+    
 
 
 @app.route('/')
@@ -67,3 +69,18 @@ def get_tasks():
 def get_task(id):
     task = Task.query.get_or_404(id)
     return {'inputs': task.inputs}
+
+
+@app.route('/tasks/<id>', methods=['PUT'])
+def update_task(id):
+    task = Task.query.get_or_404(id)
+    task.inputs = json.dumps(request.json['inputs'])
+    db.session.commit()
+    return {'message': 'Task updated'}
+
+@app.route('/tasks/<id>', methods=['DELETE'])
+def delete_task(id):
+    task = Task.query.get_or_404(id)
+    db.session.delete(task)
+    db.session.commit()
+    return {'message': 'Task deleted'}
