@@ -2,7 +2,6 @@
 # Other information is known after launching the task: pid, jobid
 # --> Therefore app should be able to call the API when running 
 
-# Bash workflows --> Currently all information can be obtained 
 import json
 
 from flask import Flask, request
