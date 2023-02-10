@@ -20,7 +20,7 @@ class Task(db.Model):
     inputs =  db.Column(db.String(800), nullable = False)
     #pid = db.Column(db.Integer, unique = True)
     #hosts = db.Column(db.String(800), nullable = True)
-    #runtime = db.Column(db.Integer, nullable = True)
+    runtime = db.Column(db.Integer, nullable = True)
 
 
     def __repr__(self):
@@ -45,8 +45,17 @@ def add_task():
             }
         }
     }
+    - A task may be registered before completion so the runtime is not required
     """
-    task = Task(inputs = json.dumps(request.json['inputs']))
+    if 'runtime' in request.json:
+        runtime = request.json['runtime']
+    else:
+        runtime = None
+
+    task = Task(
+        inputs = json.dumps(request.json['inputs']),
+        runtime = runtime 
+    )
     db.session.add(task)
     db.session.commit()
     return {'id': task.id}
@@ -59,7 +68,8 @@ def get_tasks():
         tasks_data.append(
             {
                 'id': task.id,
-                'inputs': task.inputs
+                'inputs': task.inputs,
+                'runtime': task.runtime
             }
         )
     return {'tasks': tasks_data}
@@ -68,13 +78,20 @@ def get_tasks():
 @app.route('/tasks/<id>')
 def get_task(id):
     task = Task.query.get_or_404(id)
-    return {'inputs': task.inputs}
+    return {'inputs': task.inputs, 'runtime': task.runtime}
 
 
 @app.route('/tasks/<id>', methods=['PUT'])
 def update_task(id):
+    '''
+    Any of the attributes of a task can be updated on its own
+    '''
     task = Task.query.get_or_404(id)
-    task.inputs = json.dumps(request.json['inputs'])
+    if 'inputs' in request.json:
+        task.inputs = json.dumps(request.json['inputs'])
+    if 'runtime' in request.json:
+        task.runtime = json.dumps(request.json['runtime'])
+
     db.session.commit()
     return {'message': 'Task updated'}
 

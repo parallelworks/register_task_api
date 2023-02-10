@@ -31,17 +31,16 @@ class TestTaskAction(unittest.TestCase):
         self.assertIn('tasks', get_all_response.json())
         self.assertIsInstance(get_all_response.json()['tasks'], list)
     
-    def test_get(self):
+    def test_get_inputs(self):
         task_url = TASKS_URL + '/' + str(self.id)
         get_response = requests.get(task_url)
         self.assertEqual(get_response.status_code, 200)
         response_task_json = get_response.json()
-        response_task_json['inputs'] = json.loads(response_task_json['inputs'])
-        self.assertEqual(TASK_JSON, response_task_json)
+        self.assertEqual(TASK_JSON['inputs'], json.loads(response_task_json['inputs']))
 
-    def test_put(self):
+    def test_put_inputs(self):
         # Put task
-        new_task_json = {
+        new_inputs = {
             'inputs': {
                 'args': [4, 5, 6],
                 'kwargs': {
@@ -51,14 +50,27 @@ class TestTaskAction(unittest.TestCase):
             }
         }
         task_url = TASKS_URL + '/' + str(self.id)
-        put_response = requests.put(task_url, json = new_task_json)
+        put_response = requests.put(task_url, json = new_inputs)
         self.assertEqual(put_response.status_code, 200)
         self.assertEqual({'message': 'Task updated'}, put_response.json())
 
         get_response = requests.get(task_url)
         response_task_json = get_response.json()
-        response_task_json['inputs'] = json.loads(response_task_json['inputs'])
-        self.assertEqual(new_task_json, response_task_json)
+        self.assertEqual(new_inputs['inputs'], json.loads(response_task_json['inputs']))
+
+    def test_put_runtime(self):
+        # Put task
+        new_runtime = {
+            'runtime': 1234 
+        }
+        task_url = TASKS_URL + '/' + str(self.id)
+        put_response = requests.put(task_url, json = new_runtime)
+        self.assertEqual(put_response.status_code, 200)
+        self.assertEqual({'message': 'Task updated'}, put_response.json())
+
+        get_response = requests.get(task_url)
+        response_task_json = get_response.json()
+        self.assertEqual(new_runtime['runtime'], response_task_json['runtime'])
 
     def tearDown(self):
         # Delete task
