@@ -52,6 +52,8 @@ def add_task():
         runtime = None
     
     if type(request.json['inputs']) != str:
+        inputs = json.dumps(request.json['inputs'])
+    else:
         inputs = request.json['inputs']
 
     task = Task(
