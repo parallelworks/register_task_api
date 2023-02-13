@@ -10,7 +10,8 @@ TASK_JSON: dict = {
             'input_1': 1,
             'input_2': 2
         }
-    }
+    },
+    'name': 'test-task-name'
 }
 
 
@@ -37,6 +38,14 @@ class TestTaskAction(unittest.TestCase):
         self.assertEqual(get_response.status_code, 200)
         response_task_json = get_response.json()
         self.assertEqual(TASK_JSON['inputs'], json.loads(response_task_json['inputs']))
+
+    def test_get_name(self):
+        task_url = TASKS_URL + '/' + str(self.id)
+        get_response = requests.get(task_url)
+        self.assertEqual(get_response.status_code, 200)
+        response_task_json = get_response.json()
+        print(response_task_json)
+        self.assertEqual(TASK_JSON['name'], response_task_json['name'])
 
     def test_put_inputs(self):
         # Put task

@@ -1,6 +1,11 @@
 # Some information is known before launching the task: input parameters
 # Other information is known after launching the task: pid, jobid
 # --> Therefore app should be able to call the API when running 
+# 
+
+# How can we retrieve information about a given task? 
+# --> Need some sort of task name
+# --> Task name needs to be unique
 
 import json
 
@@ -16,6 +21,7 @@ db = SQLAlchemy(app)
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(80), nullable = False)
     inputs =  db.Column(db.String(800), nullable = False)
     #pid = db.Column(db.Integer, unique = True)
     #hosts = db.Column(db.String(800), nullable = True)
@@ -23,7 +29,7 @@ class Task(db.Model):
 
 
     def __repr__(self):
-        return f"{self.id} - {self.inputs}"
+        return f"{self.id} - {self.inputs} - {self.name}"
     
     
 
@@ -42,12 +48,13 @@ def add_task():
                 "input_1": 1,
                 "input_2": 2
             }
-        }
+        },
+        "name": "test-task-name"
     }
     - A task may be registered before completion so the runtime is not required
     """
     if 'runtime' in request.json:
-        runtime = request.json['runtime']
+        runtime = int(request.json['runtime'])
     else:
         runtime = None
     
@@ -58,7 +65,8 @@ def add_task():
 
     task = Task(
         inputs = inputs,
-        runtime = runtime 
+        runtime = runtime,
+        name = request.json['name'] 
     )
     db.session.add(task)
     db.session.commit()
@@ -73,7 +81,8 @@ def get_tasks():
             {
                 'id': task.id,
                 'inputs': task.inputs,
-                'runtime': task.runtime
+                'runtime': task.runtime,
+                'name': task.name
             }
         )
     return {'tasks': tasks_data}
@@ -82,7 +91,7 @@ def get_tasks():
 @app.route('/tasks/<id>')
 def get_task(id):
     task = Task.query.get_or_404(id)
-    return {'inputs': task.inputs, 'runtime': task.runtime}
+    return {'inputs': task.inputs, 'runtime': task.runtime, 'name': task.name}
 
 
 @app.route('/tasks/<id>', methods=['PUT'])
@@ -92,9 +101,16 @@ def update_task(id):
     '''
     task = Task.query.get_or_404(id)
     if 'inputs' in request.json:
-        task.inputs = json.dumps(request.json['inputs'])
+        inputs = request.json['inputs']
+        if type(inputs) == str:
+            task.inputs = inputs
+        else:
+            task.inputs = json.dumps(request.json['inputs'])
+            
     if 'runtime' in request.json:
-        task.runtime = json.dumps(request.json['runtime'])
+        task.runtime = int(request.json['runtime'])
+    if 'name' in request.json:
+        task.runtime = str(request.json['name'])
 
     db.session.commit()
     return {'message': 'Task updated'}

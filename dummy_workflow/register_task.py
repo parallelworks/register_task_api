@@ -1,7 +1,7 @@
 import requests
 import time
 import json
-
+import os
 
 
 TASKS_URL: str = "http://127.0.0.1:5000/tasks"
@@ -9,15 +9,19 @@ TASKS_URL: str = "http://127.0.0.1:5000/tasks"
 def register_function(func):
     def wrapper(*args, **kwargs):
         # Post task
-        inputs = {
+        post_info = {
             'inputs': {
                 'args': args,
                 'kwargs': kwargs
             }
         }
+        if 'task_name' not in kwargs:
+            task_name = os.environ['USER'] + '-' + func.__name__
+        post_info['name'] = task_name
+
         post_response = requests.post(
             TASKS_URL, 
-            json = inputs
+            json = post_info,
         )
         id = post_response.json()['id']
         
