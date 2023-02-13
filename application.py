@@ -50,9 +50,12 @@ def add_task():
         runtime = request.json['runtime']
     else:
         runtime = None
+    
+    if type(request.json['inputs']) != str:
+        inputs = request.json['inputs']
 
     task = Task(
-        inputs = json.dumps(request.json['inputs']),
+        inputs = inputs,
         runtime = runtime 
     )
     db.session.add(task)
