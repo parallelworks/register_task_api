@@ -1,9 +1,9 @@
 import random
 import time
 
-from register_task import register_function
+from task_client import register_wrappers
 
-@register_function
+@register_wrappers.register_function
 def sleep_geometric_mean(input_1, input_2, input_3):
     """
     This task is meant to be a fake task that runs for [runtime] miliseconds.
