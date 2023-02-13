@@ -32,7 +32,7 @@ def register_function(func):
 
         # Put task
         task_runtime = {
-            'runtime': runtime 
+            'runtime': int(1000*runtime) 
         }
         task_url = TASKS_URL + '/' + str(id)
         put_response = requests.put(task_url, json = task_runtime)
