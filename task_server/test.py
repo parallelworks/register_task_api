@@ -16,7 +16,7 @@ TASK_JSON: dict = {
 
 
 
-class TestTaskAction(unittest.TestCase):
+class TestTaskEndPoint(unittest.TestCase):
 
     def setUp(self):
         post_response = requests.post(TASKS_URL, json = TASK_JSON)

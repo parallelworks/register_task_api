@@ -10,114 +10,26 @@
 import json
 
 from flask import Flask, request
+from tasks_bp import db_task, tasks_bp
+
 
 app = Flask(__name__)
-from flask_sqlalchemy import SQLAlchemy
+app.register_blueprint(tasks_bp, url_prefix="")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-db = SQLAlchemy(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
+db_task.init_app(app)
 
-# Inputs may need to be a JSON with args and kwargs
+# Configure the second database
+#app.config['SQLALCHEMY_BINDS'] = {'data2': 'sqlite:///data_2.db'}
+#db2.init_app(app)
 
-class Task(db.Model):
-    id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(80), nullable = False)
-    inputs =  db.Column(db.String(800), nullable = False)
-    #pid = db.Column(db.Integer, unique = True)
-    #hosts = db.Column(db.String(800), nullable = True)
-    runtime = db.Column(db.Integer, nullable = True)
-
-
-    def __repr__(self):
-        return f"{self.id} - {self.inputs} - {self.name}"
-    
-    
+#app.register_blueprint(tasks_bp, url_prefix='/tasks')
 
 
 @app.route('/')
 def index():
     return 'Hello'
 
-@app.route('/tasks', methods = ['POST'])
-def add_task():
-    """
-    sample_inputs = { 
-        "inputs": {
-            "args": [1, 2, 3],
-            "kwargs": {
-                "input_1": 1,
-                "input_2": 2
-            }
-        },
-        "name": "test-task-name"
-    }
-    - A task may be registered before completion so the runtime is not required
-    """
-    if 'runtime' in request.json:
-        runtime = int(request.json['runtime'])
-    else:
-        runtime = None
-    
-    if type(request.json['inputs']) != str:
-        inputs = json.dumps(request.json['inputs'])
-    else:
-        inputs = request.json['inputs']
-
-    task = Task(
-        inputs = inputs,
-        runtime = runtime,
-        name = request.json['name'] 
-    )
-    db.session.add(task)
-    db.session.commit()
-    return {'id': task.id}
-   
-@app.route('/tasks')
-def get_tasks():
-    tasks = Task.query.all()
-    tasks_data = []
-    for task in tasks:
-        tasks_data.append(
-            {
-                'id': task.id,
-                'inputs': task.inputs,
-                'runtime': task.runtime,
-                'name': task.name
-            }
-        )
-    return {'tasks': tasks_data}
-
-
-@app.route('/tasks/<id>')
-def get_task(id):
-    task = Task.query.get_or_404(id)
-    return {'inputs': task.inputs, 'runtime': task.runtime, 'name': task.name}
-
-
-@app.route('/tasks/<id>', methods=['PUT'])
-def update_task(id):
-    '''
-    Any of the attributes of a task can be updated on its own
-    '''
-    task = Task.query.get_or_404(id)
-    if 'inputs' in request.json:
-        inputs = request.json['inputs']
-        if type(inputs) == str:
-            task.inputs = inputs
-        else:
-            task.inputs = json.dumps(request.json['inputs'])
-            
-    if 'runtime' in request.json:
-        task.runtime = int(request.json['runtime'])
-    if 'name' in request.json:
-        task.runtime = str(request.json['name'])
-
-    db.session.commit()
-    return {'message': 'Task updated'}
-
-@app.route('/tasks/<id>', methods=['DELETE'])
-def delete_task(id):
-    task = Task.query.get_or_404(id)
-    db.session.delete(task)
-    db.session.commit()
-    return {'message': 'Task deleted'}
+if __name__ == '__main__':
+    print(app.url_map)
+    app.run(debug=True)
