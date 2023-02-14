@@ -1,1 +1,1 @@
-export PATH_TO_TASK_CLIENT=${PWD}
+export PATH_TO_ROOT=${PWD}

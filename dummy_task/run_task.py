@@ -1,11 +1,11 @@
 import sys,os
 
-sys.path.append(os.environ['PATH_TO_TASK_CLIENT'])
+sys.path.append(os.environ['PATH_TO_ROOT'])
 
 import random
 import time
 
-from task_client import register_wrapper
+from utils import register_wrapper
 
 @register_wrapper.register_function
 def sleep_geometric_mean(input_1, input_2, input_3):
