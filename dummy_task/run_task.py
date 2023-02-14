@@ -1,3 +1,7 @@
+import sys,os
+
+sys.path.append(os.environ['PATH_TO_TASK_CLIENT'])
+
 import random
 import time
 

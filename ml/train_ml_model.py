@@ -1,6 +1,8 @@
-import task_client
+import sys,json, os
 import pandas as pd
-import json
+
+sys.path.append(os.environ['PATH_TO_TASK_CLIENT'])
+
 from xgboost import XGBRegressor
 
 from sklearn.preprocessing import MinMaxScaler
@@ -9,6 +11,7 @@ from sklearn.compose import TransformedTargetRegressor
 
 from sklearn.model_selection import train_test_split
 
+import task_client
 
 def args_to_pandas_dict(args: list) -> dict:
     # FIXME: What if input_1 is also in kwargs?
