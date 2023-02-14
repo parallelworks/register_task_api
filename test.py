@@ -14,6 +14,14 @@ TASK_JSON: dict = {
     'name': 'test-task-name'
 }
 
+MODELS_URL: str = "http://127.0.0.1:5000/models"
+MODEL_JSON: dict = {
+    "name": "my-model",
+    "task_name": "avidalto-sleep_geometric_mean",
+    "features": ["inputs"],
+    "target": "runtime"
+}
+
 
 
 class TestTaskEndPoint(unittest.TestCase):
@@ -44,7 +52,6 @@ class TestTaskEndPoint(unittest.TestCase):
         get_response = requests.get(task_url)
         self.assertEqual(get_response.status_code, 200)
         response_task_json = get_response.json()
-        print(response_task_json)
         self.assertEqual(TASK_JSON['name'], response_task_json['name'])
 
     def test_put_inputs(self):
@@ -89,5 +96,21 @@ class TestTaskEndPoint(unittest.TestCase):
         self.assertEqual({'message': 'Task deleted'}, delete_response.json())
 
 
+class TestModelEndPoint(unittest.TestCase):
+
+    def setUp(self):
+        post_response = requests.post(MODELS_URL, json = MODEL_JSON)
+        self.assertIn(post_response.status_code, [200,201])
+        self.assertIsInstance(post_response.json(), dict)
+        self.id = post_response.json()['id']
+        self.assertIsInstance(self.id, int)
+
+    def test_get_all(self):
+        get_all_response = requests.get(MODELS_URL)
+        self.assertEqual(get_all_response.status_code, 200)
+        self.assertIsInstance(get_all_response.json(), dict)
+        self.assertIn('models', get_all_response.json())
+        self.assertIsInstance(get_all_response.json()['models'], list)
+    
 if __name__ == '__main__':
     unittest.main()

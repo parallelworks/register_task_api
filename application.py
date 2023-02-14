@@ -9,19 +9,22 @@
 
 import json
 
-from flask import Flask, request
-from tasks_bp import db_task, tasks_bp
+from flask import Flask
 
+from tasks_bp import tasks_bp, db_tasks, db_tasks_path
+from models_bp import models_bp, db_models, db_models_path
 
 app = Flask(__name__)
 app.register_blueprint(tasks_bp, url_prefix="")
+app.register_blueprint(models_bp, url_prefix="")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
-db_task.init_app(app)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_tasks_path
+db_tasks.init_app(app)
 
 # Configure the second database
-#app.config['SQLALCHEMY_BINDS'] = {'data2': 'sqlite:///data_2.db'}
-#db2.init_app(app)
+app.config['SQLALCHEMY_BINDS'] = {'models': db_models_path}
+db_models.init_app(app)
 
 #app.register_blueprint(tasks_bp, url_prefix='/tasks')
 

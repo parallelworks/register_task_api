@@ -5,15 +5,17 @@ from flask_sqlalchemy import SQLAlchemy
 
 tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static") #, template_folder = "templates")
 
-db_task = SQLAlchemy()
+db_tasks = SQLAlchemy()
+db_tasks_path = 'sqlite:///tasks.db'
+tasks_table_name = 'task' 
 
-class Task(db_task.Model):
-    id = db_task.Column(db_task.Integer, primary_key = True)
-    name = db_task.Column(db_task.String(80), nullable = False)
-    inputs =  db_task.Column(db_task.String(800), nullable = False)
+class Task(db_tasks.Model):
+    id = db_tasks.Column(db_tasks.Integer, primary_key = True)
+    name = db_tasks.Column(db_tasks.String(80), nullable = False)
+    inputs =  db_tasks.Column(db_tasks.String(800), nullable = False)
     #pid = db.Column(db.Integer, unique = True)
     #hosts = db.Column(db.String(800), nullable = True)
-    runtime = db_task.Column(db_task.Integer, nullable = True)
+    runtime = db_tasks.Column(db_tasks.Integer, nullable = True)
 
     def __repr__(self):
         return f"{self.id} - {self.inputs} - {self.name}"
@@ -48,8 +50,8 @@ def add_task():
         runtime = runtime,
         name = request.json['name'] 
     )
-    db_task.session.add(task)
-    db_task.session.commit()
+    db_tasks.session.add(task)
+    db_tasks.session.commit()
     return {'id': task.id}
    
 @tasks_bp.route('/tasks')
@@ -92,12 +94,12 @@ def update_task(id):
     if 'name' in request.json:
         task.runtime = str(request.json['name'])
 
-    db_task.session.commit()
+    db_tasks.session.commit()
     return {'message': 'Task updated'}
 
 @tasks_bp.route('/tasks/<id>', methods=['DELETE'])
 def delete_task(id):
     task = Task.query.get_or_404(id)
-    db_task.session.delete(task)
-    db_task.session.commit()
+    db_tasks.session.delete(task)
+    db_tasks.session.commit()
     return {'message': 'Task deleted'}
