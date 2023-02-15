@@ -1,6 +1,6 @@
 import requests
 import unittest
-import json
+import json, os 
 
 TASKS_URL: str = "http://127.0.0.1:5000/tasks"
 TASK_JSON: dict = {
@@ -16,12 +16,18 @@ TASK_JSON: dict = {
 
 MODELS_URL: str = "http://127.0.0.1:5000/models"
 MODEL_JSON: dict = {
-    "name": "my-model",
+    "model_name": "my-model",
     "task_name": "avidalto-sleep_geometric_mean",
     "features": ["inputs"],
     "target": "runtime"
 }
 
+
+MODEL_X: dict = {
+    "X": [1, 2, 3]
+}
+
+MODEL_DIR: str = 'models/'
 
 
 class TestTaskEndPoint(unittest.TestCase):
@@ -111,6 +117,24 @@ class TestModelEndPoint(unittest.TestCase):
         self.assertIsInstance(get_all_response.json(), dict)
         self.assertIn('models', get_all_response.json())
         self.assertIsInstance(get_all_response.json()['models'], list)
+
+    def test_get_model_prediction(self):
+        model_prediction_url = MODELS_URL + '/' + str(self.id) +'/predict'
+        get_response = requests.get(model_prediction_url, json = MODEL_X)
+        get_response_json = get_response.json()
+        self.assertIsInstance(get_response_json, dict)
+        self.assertIn('predictions', get_response_json)
+        self.assertIsInstance(get_response_json['predictions'], list)
+
+    def tearDown(self):
+        # Delete model
+        model_url = MODELS_URL + '/' + str(self.id)
+        model_path = os.path.join(MODEL_DIR, str(self.id) + '.pkl')
+        delete_response = requests.delete(model_url)
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertEqual({'message': 'Model deleted'}, delete_response.json())
+        self.assertFalse(os.path.isfile(model_path), f"Model {model_path} was not deleted")
+
     
 if __name__ == '__main__':
     unittest.main()

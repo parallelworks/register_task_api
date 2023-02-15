@@ -2,6 +2,8 @@ import json, os
 from flask import Blueprint, request
 from flask_sqlalchemy import SQLAlchemy
 
+import numpy as np
+
 import ml
 from tasks_bp import db_tasks_path, tasks_table_name
 
@@ -21,7 +23,7 @@ class Model(db_models.Model):
     score = db_models.Column(db_models.Float, nullable = True)
     
     def __repr__(self):
-        return f"{self.id} - {self.name} - {self.path} - {self.score}"
+        return f"{self.id} - {self.model_name} - {self.task_name} - {self.path} - {self.score}"
     
 
 @models_bp.route('/models', methods = ['POST'])
@@ -43,7 +45,7 @@ def add_model():
     # FIXME: We may also have many targets
 
     model = Model(
-        model_name = request.json['name'],
+        model_name = request.json['model_name'],
         task_name = request.json['task_name'],
         features = features_str,
         target = request.json['target']
@@ -67,7 +69,7 @@ def add_model():
     return {'id': model.id}
    
 @models_bp.route('/models')
-def get_tasks():
+def get_models():
     models = Model.query.all()
     models_data = []
     for model in models:
@@ -84,3 +86,35 @@ def get_tasks():
         )
 
     return {'models': models_data}
+
+
+@models_bp.route('/models/<id>')
+def get_model(id):
+    model = Model.query.get_or_404(id)
+    response = {
+        'model_name': model.model_name,
+        'task_name': model.task_name,
+        'features': model.features,
+        'target': model.target,
+        'path': model.path,
+        'score': model.score
+    }
+    return response
+
+
+@models_bp.route('/models/<id>/predict')
+def get_model_prediction(id):
+    model = Model.query.get_or_404(id)
+    prediction = ml.predict.predict(model.path, request.json['X'])
+    return {'predictions': prediction.tolist()}
+
+
+    
+@models_bp.route('/models/<id>', methods=['DELETE'])
+def delete_model(id):
+    model = Model.query.get_or_404(id)
+    if os.path.isfile(model.path):
+        os.remove(model.path)
+    db_models.session.delete(model)
+    db_models.session.commit()
+    return {'message': 'Model deleted'}
