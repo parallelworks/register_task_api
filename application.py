@@ -1,11 +1,18 @@
-# Some information is known before launching the task: input parameters
-# Other information is known after launching the task: pid, jobid
-# --> Therefore app should be able to call the API when running 
-# 
+"""
+Information known:
+- Before launching the task: input parameters
+- After launching the task: pid, jobid
+- When task is completed: runtime
+--> Therefore app should be able to call the API when running 
 
-# How can we retrieve information about a given task? 
-# --> Need some sort of task name
-# --> Task name needs to be unique
+How can we retrieve information about a given task? 
+- Need some sort of task name
+- Task name needs to be unique
+
+Cant use resource name for training purposes since resource could be edited
+- Need to use specific resource properties like instance type
+
+"""
 
 import json
 

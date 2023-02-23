@@ -76,6 +76,7 @@ def get_task(id):
     return {'inputs': task.inputs, 'runtime': task.runtime, 'name': task.name}
 
 
+# FIXME: Inpues should be transformed to a common format
 @tasks_bp.route('/tasks/<id>', methods=['PUT'])
 def update_task(id):
     '''
