@@ -2,27 +2,54 @@ import requests
 import time
 import json
 import os
-
+import inspect
 
 TASKS_URL: str = "http://127.0.0.1:5000/tasks"
 MODELS_URL: str = "http://127.0.0.1:5000/models"
 
+def get_default_args(func):
+    """
+    Sample:
+    f(fist,last,greeting = 'hello')
+    >> {'greeting': 'hello'}
+    """
+    signature = inspect.signature(func)
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
+
+def convert_arguments_to_dict(func, args, kwargs):
+    """
+    Sample:
+    f(fist,last,greeting = 'hello')
+    f(john, doe) 
+    >> {first: john, last:doe, greeting = 'hello'}
+    f(john, doe, greeting = 'hi') 
+    >> {first: john, last:doe, greeting = 'hi'}
+    """
+    def_args = get_default_args(func)
+    anames = func.__code__.co_varnames[:func.__code__.co_argcount]
+    args_dict = dict(zip(anames, args))
+    knames = [ aname for aname in anames if aname not in args_dict ]
+    kvalues = [ kwargs[kname] if kname in kwargs else def_args[kname] for kname in knames]
+    kwargs_dict = dict(zip(knames, kvalues))
+    return {**args_dict, **kwargs_dict}
 
 def register_function(func):
     def wrapper(*args, **kwargs):
         # Post task
-        post_info = {
-            'inputs': {
-                'args': args,
-                'kwargs': kwargs
-            }
-        }
+        inputs = convert_arguments_to_dict(func, args, kwargs)
         if 'task_name' not in kwargs:
             task_name = os.environ['USER'] + '-' + func.__name__
         else:
             task_name = kwargs['task_name']
 
-        post_info['name'] = task_name
+        post_info = {
+            'name': task_name,
+            'inputs': inputs
+        }
 
         post_response = requests.post(
             TASKS_URL, 
@@ -41,7 +68,7 @@ def register_function(func):
         }
         task_url = TASKS_URL + '/' + str(id)
         put_response = requests.put(task_url, json = task_runtime)
-        return func(*args, **kwargs)
+        return result
 
     return wrapper
 
