@@ -2,7 +2,8 @@ import requests
 import unittest
 import json, os 
 
-TASKS_URL: str = "http://127.0.0.1:5000/tasks"
+from application import TASKS_URL, MODELS_URL
+
 TASK_JSON: dict = {
     'inputs': {
         'input_1': 1,
@@ -11,7 +12,6 @@ TASK_JSON: dict = {
     'name': 'test-task-name'
 }
 
-MODELS_URL: str = "http://127.0.0.1:5000/models"
 MODEL_JSON: dict = {
     "model_name": "my-model",
     "task_name": "sleep_geometric_mean_123",

@@ -16,10 +16,13 @@ Cant use resource name for training purposes since resource could be edited
 
 import json
 
-from flask import Flask
+from flask import Flask, render_template
 
 from tasks_bp import tasks_bp, db_tasks, db_tasks_path
 from models_bp import models_bp, db_models, db_models_path
+
+TASKS_URL: str = "http://127.0.0.1:5000/tasks"
+MODELS_URL: str = "http://127.0.0.1:5000/models"
 
 app = Flask(__name__)
 app.register_blueprint(tasks_bp, url_prefix="")
@@ -38,7 +41,9 @@ db_models.init_app(app)
 
 @app.route('/')
 def index():
-    return 'Hello'
+    return render_template('index.html')
+
+
 
 if __name__ == '__main__':
     print(app.url_map)

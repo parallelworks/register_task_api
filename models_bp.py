@@ -1,6 +1,9 @@
 import json, os
-from flask import Blueprint, request
+from flask import Blueprint, request, render_template
 from flask_sqlalchemy import SQLAlchemy
+
+# Only required to display the data 
+import pandas as pd
 
 import numpy as np
 
@@ -118,3 +121,11 @@ def delete_model(id):
     db_models.session.delete(model)
     db_models.session.commit()
     return {'message': 'Model deleted'}
+
+
+@models_bp.route('/models/table', methods=['GET'])
+def models_table():
+    models = Model.query.all()
+    models_df = pd.read_sql(str(Model.__table__), db_models.engine)
+    html_table = models_df.to_html(index=False)
+    return render_template('index.html', content=html_table)

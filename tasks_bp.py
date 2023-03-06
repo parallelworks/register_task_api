@@ -1,7 +1,9 @@
 import json
-from flask import Blueprint, request
+from flask import Blueprint, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 
+# Only required to display the data 
+import pandas as pd
 
 tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static") #, template_folder = "templates")
 
@@ -101,3 +103,11 @@ def delete_task(id):
     db_tasks.session.delete(task)
     db_tasks.session.commit()
     return {'message': 'Task deleted'}
+
+
+@tasks_bp.route('/tasks/table', methods=['GET'])
+def tasks_table():
+    tasks = Task.query.all()
+    tasks_df = pd.read_sql(str(Task.__table__), db_tasks.engine)
+    html_table = tasks_df.to_html(index=False)
+    return render_template('index.html', content=html_table)
