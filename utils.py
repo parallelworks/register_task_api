@@ -97,3 +97,13 @@ def get_model_info(model_id):
     model_url = MODELS_URL + '/' + str(model_id)
     response = requests.get(model_url)
     return response.json()
+
+
+def delete_tasks_by_name(task_name):
+    get_all_response = requests.get(TASKS_URL)
+    all_tasks = get_all_response.json()
+    for task in all_tasks['tasks']:
+        task_id = task['id']
+        task_url = TASKS_URL + '/' + str(task['id'])
+        delete_response = requests.delete(task_url)
+    return f'All tasks named {task_name} were deleted'

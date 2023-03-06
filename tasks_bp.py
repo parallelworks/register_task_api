@@ -25,11 +25,8 @@ def add_task():
     """
     sample_inputs = { 
         "inputs": {
-            "args": [1, 2, 3],
-            "kwargs": {
-                "input_1": 1,
-                "input_2": 2
-            }
+            "input_1": 1,
+            "input_2": 2
         },
         "name": "test-task-name"
     }

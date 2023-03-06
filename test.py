@@ -5,11 +5,8 @@ import json, os
 TASKS_URL: str = "http://127.0.0.1:5000/tasks"
 TASK_JSON: dict = {
     'inputs': {
-        'args': [1, 2, 3],
-        'kwargs': {
-            'input_1': 1,
-            'input_2': 2
-        }
+        'input_1': 1,
+        'input_2': 2
     },
     'name': 'test-task-name'
 }
@@ -17,7 +14,7 @@ TASK_JSON: dict = {
 MODELS_URL: str = "http://127.0.0.1:5000/models"
 MODEL_JSON: dict = {
     "model_name": "my-model",
-    "task_name": "avidalto-sleep_geometric_mean",
+    "task_name": "sleep_geometric_mean_123",
     "features": ["inputs"],
     "target": "runtime"
 }
@@ -64,11 +61,8 @@ class TestTaskEndPoint(unittest.TestCase):
         # Put task
         new_inputs = {
             'inputs': {
-                'args': [4, 5, 6],
-                'kwargs': {
-                    'input_1': 3,
-                    'input_2': 4
-                }
+                'input_1': 3,
+                'input_2': 4
             }
         }
         task_url = TASKS_URL + '/' + str(self.id)
@@ -137,4 +131,7 @@ class TestModelEndPoint(unittest.TestCase):
 
     
 if __name__ == '__main__':
-    unittest.main()
+    import run_dummy_task
+    run_dummy_task.main()
+    unittest.main(exit = False)
+    run_dummy_task.clean()

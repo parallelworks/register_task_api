@@ -24,15 +24,10 @@ def read_data(db_path, table_name, task_name, columns):
 
 def inputs_dict_to_list(inputs: dict) -> list:
     args_list = []
-    if 'args' in inputs:
-        for arg in inputs['args']:
-            if isinstance(arg, int) or isinstance(arg, float):
-                args_list.append(arg)
-    if 'kwargs' in inputs:
-        for kwarg_name, kwarg_val in inputs['kwargs'].items():
-            if isinstance(kwarg_val, int) or isinstance(kwarg_val, float):
-                args_list.append(kwarg_val)
-    
+    for arg_name, arg_val in inputs.items():
+        # FIXME: Generalize treatment of different input types!
+        if isinstance(arg_val, int) or isinstance(arg_val, float):
+            args_list.append(arg_val)
     return args_list
 
 def expand_inputs(df):
