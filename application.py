@@ -29,6 +29,7 @@ app.register_blueprint(tasks_bp, url_prefix="")
 app.register_blueprint(models_bp, url_prefix="")
 
 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = db_tasks_path
 db_tasks.init_app(app)
 
