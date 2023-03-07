@@ -11,6 +11,7 @@ How can we retrieve information about a given task?
 
 Cant use resource name for training purposes since resource could be edited
 - Need to use specific resource properties like instance type
+- Could we save resource name and session and use that to retrieve the resource properties?
 
 """
 
@@ -47,5 +48,10 @@ def index():
 
 
 if __name__ == '__main__':
+
+    with app.app_context():
+        db_tasks.create_all()
+        db_models.create_all()
+
     print(app.url_map)
     app.run(debug=True)
