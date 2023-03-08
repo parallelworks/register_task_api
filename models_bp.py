@@ -1,8 +1,8 @@
-import json, os
+import json, os, pickle
+
 from flask import Blueprint, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 
-# Only required to display the data 
 import pandas as pd
 
 import numpy as np
@@ -108,7 +108,14 @@ def get_model(id):
 @models_bp.route('/models/<id>/predict')
 def get_model_prediction(id):
     model = Model.query.get_or_404(id)
-    prediction = ml.predict.predict(model.path, request.json['X'])
+    # Needs to be a dataframe to be compatible with the machine learning model
+    data = pd.read_json(request.json['X'])
+
+    with open(model.path, 'rb') as file:
+        model = pickle.load(file)
+
+    prediction = model.predict(data)
+    
     return {'predictions': prediction.tolist()}
 
 

@@ -2,6 +2,8 @@ import requests
 import unittest
 import json, os 
 
+import pandas as pd
+
 import run_dummy_task, utils
 
 from application import TASKS_URL, MODELS_URL
@@ -21,9 +23,14 @@ MODEL_JSON: dict = {
     "target": "runtime"
 }
 
+MODEL_INPUTS: dict = {
+    'input_1': 1,
+    'input_2': 2,
+    'input_3': 3
+}
 
 MODEL_X: dict = {
-    "X": [1, 2, 3]
+    "X": pd.DataFrame([MODEL_INPUTS], columns = MODEL_INPUTS.keys()).to_json()
 }
 
 MODEL_DIR: str = 'models/'

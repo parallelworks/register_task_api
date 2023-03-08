@@ -4,6 +4,8 @@ import json
 import os
 import inspect
 
+import pandas as pd
+
 from application import TASKS_URL, MODELS_URL
 
 def get_default_args(func):
@@ -44,6 +46,7 @@ def register_function(func):
             task_name = os.environ['USER'] + '-' + func.__name__
         else:
             task_name = kwargs['task_name']
+            del inputs['task_name']
 
         post_info = {
             'name': task_name,
@@ -83,10 +86,10 @@ def train_runtime_prediction_model(task_name):
     return response.json()['id']
 
 
-def predict_runtime(model_id, X_list):
+def predict_runtime(model_id, inputs):
     model_prediction_url = MODELS_URL + '/' + str(model_id) +'/predict'
     model_X = {
-        "X": X_list
+        "X": pd.DataFrame([inputs], columns = inputs.keys()).to_json()
     }
     get_response = requests.get(model_prediction_url, json = model_X)
     return get_response.json()['predictions'][0]

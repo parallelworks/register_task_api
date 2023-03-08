@@ -33,9 +33,9 @@ def train_model():
 
 def register_tasks():
     # Run many tasks to gather data:
-    for x in range(0,11,2):
-        for y in range(0,11,2):
-            for z in range(0,11,2):
+    for x in range(0,11,4):
+        for y in range(0,11,4):
+            for z in range(0,11,4):
                 runtime = sleep_geometric_mean(x, y, z, task_name = TASK_NAME)
                 print('Runtime [ms]', runtime)    
 
@@ -43,7 +43,8 @@ def validate_predictions(model_id):
     for x in range(1,11,4):
         for y in range(1,11,4):
             for z in range(1,11,4):
-                runtime_pred = utils.predict_runtime(model_id, [x, y, z])
+                inputs = {'input_1': x, 'input_2': y, 'input_3': z}
+                runtime_pred = utils.predict_runtime(model_id, inputs)
                 runtime = sleep_geometric_mean(x, y, z, task_name = TASK_NAME)
                 print('Runtime [ms]', runtime, 'Predicted [ms]', runtime_pred)
     
