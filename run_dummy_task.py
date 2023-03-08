@@ -53,8 +53,8 @@ def main():
     model_id = train_model()
     validate_predictions(model_id)
     # Clean data
-    utils.delete_tasks_by_name(TASK_NAME)
-    utils.delete_model_by_id(model_id)
+    #utils.delete_tasks_by_name(TASK_NAME)
+    #utils.delete_model_by_id(model_id)
 
 if __name__ == '__main__':
     main()

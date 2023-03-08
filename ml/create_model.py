@@ -1,5 +1,6 @@
 import json, os
 import pickle
+from copy import deepcopy
 
 import pandas as pd
 import numpy as np
@@ -7,11 +8,14 @@ from sqlalchemy import create_engine
 
 from xgboost import XGBRegressor
 
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
-from sklearn.compose import TransformedTargetRegressor
-
+from sklearn.compose import TransformedTargetRegressor, ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
+
+from skopt import BayesSearchCV
+
 
 def read_data(db_path, table_name, task_name, columns):
     columns = ', '.join(columns)
@@ -22,39 +26,71 @@ def read_data(db_path, table_name, task_name, columns):
     query = f"SELECT {columns} FROM {table_name} WHERE name = '{task_name}'"
     return pd.read_sql(query, engine)
 
-def inputs_dict_to_list(inputs: dict) -> list:
-    args_list = []
-    for arg_name, arg_val in inputs.items():
-        # FIXME: Generalize treatment of different input types!
-        if isinstance(arg_val, int) or isinstance(arg_val, float):
-            args_list.append(arg_val)
-    return args_list
-
 def expand_inputs(df):
     df['inputs'] = df['inputs'].apply(json.loads)
     return df
 
-def get_X_y(df, features, target):
-    # FIXME: Generalize creation of X:
-    df = expand_inputs(df)
-    df['inputs'] = df['inputs'].apply(inputs_dict_to_list)
-    X = np.array(df['inputs'].to_list())
-    ##################################
-    y = df[target]
-    return X, y
+def get_numerical_and_categorical(data):
+    features = list(data.columns) #.remove(target)
 
-def train_model(X_train, y_train):
+    categorical_features = list(
+        set(data.columns) - set(data._get_numeric_data().columns)
+    )
+
+    numerical_features = deepcopy(features)
+    [ numerical_features.remove(cf) for cf in categorical_features]
+
+    return numerical_features, categorical_features
+
+def get_X_y(df, features, target):
+    df = expand_inputs(df)
+    X = pd.DataFrame(df['inputs'].to_list())
+    numerical, categorical = get_numerical_and_categorical(X)
+    y = df[target]
+    return X, y, numerical, categorical
+
+def train_model(X_train, y_train, numerical, categorical, hyperparameter_optimization = False):
+    
+    numeric_transformer = Pipeline(
+        steps = [
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', MinMaxScaler())
+        ]
+    )
+
+    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+
+    preprocessor = ColumnTransformer(
+        transformers = [
+            ('num', numeric_transformer, numerical),
+            ('cat', categorical_transformer, categorical)
+        ]
+    )
+
     model = TransformedTargetRegressor(
         regressor = Pipeline(
+            steps =
             [
-                ('scale',  MinMaxScaler()),
+                ('preprocess', preprocessor),
                 ('xgb', XGBRegressor(objective = 'reg:squarederror'))
             ]
         ),
         transformer = MinMaxScaler()
     )
-    model.fit(X_train, y_train)
-    return model
+    if not hyperparameter_optimization:
+        return model.fit(X_train, y_train)
+    
+    model_hopt = BayesSearchCV(
+        model,
+        {
+            "regressor__xgb__n_estimators": (100, 10000),
+            "regressor__xgb__learning_rate": (10**-4, 0.99, 'log-uniform'),
+            "regressor__xgb__max_depth": [2, 3, 4, 5, 6, 7, 8]
+        },
+        n_iter = 10,
+        cv = 5
+    )
+    return model_hopt.fit(X_train, y_train)
 
 def save_model(model, model_path):
     os.makedirs(os.path.dirname(model_path), exist_ok = True)
@@ -64,9 +100,9 @@ def save_model(model, model_path):
 def create_model(db_path, table_name, task_name, features, target, model_path):
     columns = features + [target]
     df = read_data(db_path, table_name, task_name, columns)
-    X, y = get_X_y(df, features, target)
+    X, y, numerical, categorical = get_X_y(df, features, target)
     X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle = True)
-    model = train_model(X_train, y_train)
+    model = train_model(X_train, y_train, numerical, categorical)
     save_model(model, model_path)
     score = model.score(X_test, y_test)
     return score
@@ -75,8 +111,8 @@ if __name__ == '__main__':
     table_name = 'task'
     features = ['inputs']
     target = 'runtime'
-    task_name = 'avidalto-sleep_geometric_mean'
-    db_path = 'sqlite:////home/avidalto/projects/2023/register_task/task_server/tasks.db'
+    task_name = 'sleep_geometric_mean_123'
+    db_path = 'sqlite:////home/avidalto/projects/2023/register_task/tasks.db'
     model_path = 'models/predict-{target}-with-{features}-for-{task_name}.pkl'.format(
         target = target,
         features = '-'.join(features),
@@ -84,3 +120,4 @@ if __name__ == '__main__':
     )
 
     score = create_model(db_path, table_name, task_name, features, target, model_path)
+    print(score)

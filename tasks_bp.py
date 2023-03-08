@@ -15,6 +15,7 @@ class Task(db_tasks.Model):
     id = db_tasks.Column(db_tasks.Integer, primary_key = True)
     name = db_tasks.Column(db_tasks.String(80), nullable = False)
     inputs =  db_tasks.Column(db_tasks.String(800), nullable = False)
+    #resource_info: CPUs, Memory, Cloud, Instance Type -->
     #pid = db.Column(db.Integer, unique = True)
     #hosts = db.Column(db.String(800), nullable = True)
     runtime = db_tasks.Column(db_tasks.Integer, nullable = True)
