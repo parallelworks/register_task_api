@@ -106,3 +106,8 @@ def delete_tasks_by_name(task_name):
         task_url = TASKS_URL + '/' + str(task['id'])
         delete_response = requests.delete(task_url)
     return f'All tasks named {task_name} were deleted'
+
+def delete_model_by_id(id):
+    model_url = MODELS_URL + '/' + str(id)
+    delete_response = requests.delete(model_url)
+    return delete_response

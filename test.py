@@ -2,6 +2,8 @@ import requests
 import unittest
 import json, os 
 
+import run_dummy_task, utils
+
 from application import TASKS_URL, MODELS_URL
 
 TASK_JSON: dict = {
@@ -14,7 +16,7 @@ TASK_JSON: dict = {
 
 MODEL_JSON: dict = {
     "model_name": "my-model",
-    "task_name": "sleep_geometric_mean_123",
+    "task_name":run_dummy_task.TASK_NAME,
     "features": ["inputs"],
     "target": "runtime"
 }
@@ -99,6 +101,7 @@ class TestTaskEndPoint(unittest.TestCase):
 class TestModelEndPoint(unittest.TestCase):
 
     def setUp(self):
+        run_dummy_task.register_tasks()
         post_response = requests.post(MODELS_URL, json = MODEL_JSON)
         self.assertIn(post_response.status_code, [200,201])
         self.assertIsInstance(post_response.json(), dict)
@@ -128,10 +131,8 @@ class TestModelEndPoint(unittest.TestCase):
         self.assertEqual(delete_response.status_code, 200)
         self.assertEqual({'message': 'Model deleted'}, delete_response.json())
         self.assertFalse(os.path.isfile(model_path), f"Model {model_path} was not deleted")
+        utils.delete_tasks_by_name(run_dummy_task.TASK_NAME)
 
     
 if __name__ == '__main__':
-    import run_dummy_task
-    run_dummy_task.main()
     unittest.main(exit = False)
-    run_dummy_task.clean()
