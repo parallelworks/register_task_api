@@ -79,12 +79,12 @@ def validate_predictions_with_missing_features(model_id):
 def main():
     print('\nRegistering tasks')
     register_tasks()
-    print('\nTraining model')
-    model_id = train_model()
-    print('\nValidating predictions')
-    validate_predictions(model_id)
-    print('\nValidating predictions with missing features')
-    validate_predictions_with_missing_features(model_id)
+    #print('\nTraining model')
+    #model_id = train_model()
+    #print('\nValidating predictions')
+    #validate_predictions(model_id)
+    #print('\nValidating predictions with missing features')
+    #validate_predictions_with_missing_features(model_id)
     # Clean data
     #utils.delete_tasks_by_name(TASK_NAME)
     #utils.delete_model_by_id(model_id)

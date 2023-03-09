@@ -18,11 +18,17 @@ Cant use resource name for training purposes since resource could be edited
 
 If the task inputs are changed we cannot predict the new task
 
+Register task:
+- Inputs (arbitrary dictionary)
+- Resource (cluster, partition, lustre) --> Use this with the PW API to create the resource info
+
 """
 
 import json
 
 from flask import Flask, render_template
+from flask_migrate import Migrate
+
 
 from tasks_bp import tasks_bp, db_tasks, db_tasks_path
 from models_bp import models_bp, db_models, db_models_path

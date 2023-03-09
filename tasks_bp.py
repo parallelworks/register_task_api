@@ -1,27 +1,42 @@
 import json
 from flask import Blueprint, request, render_template
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 # Only required to display the data 
 import pandas as pd
 
-tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static") #, template_folder = "templates")
+tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static")
 
 db_tasks = SQLAlchemy()
+
 db_tasks_path = 'sqlite:///tasks.db'
 tasks_table_name = 'task' 
+inputs_table_name = 'input'
+
 
 class Task(db_tasks.Model):
+    __tablename__ = tasks_table_name
     id = db_tasks.Column(db_tasks.Integer, primary_key = True)
     name = db_tasks.Column(db_tasks.String(80), nullable = False)
-    inputs =  db_tasks.Column(db_tasks.String(800), nullable = False)
-    #resource_info: CPUs, Memory, Cloud, Instance Type -->
-    #pid = db.Column(db.Integer, unique = True)
-    #hosts = db.Column(db.String(800), nullable = True)
     runtime = db_tasks.Column(db_tasks.Integer, nullable = True)
+    inputs = db_tasks.Column(db_tasks.Integer, db_tasks.ForeignKey('input.id'), nullable=True)
+    input = db_tasks.relationship('Input', backref='tasks')
 
     def __repr__(self):
-        return f"{self.id} - {self.inputs} - {self.name}"
+        return f"{self.id} - {self.name}"
+
+
+class Input(db_tasks.Model):
+    __tablename__ = inputs_table_name
+    id = db_tasks.Column(db_tasks.Integer, primary_key = True)
+    inputs =  db_tasks.Column(db_tasks.String(800), nullable = False, unique = True)
+    #tasks = db_tasks.relationship('Task', backref='input', lazy=True)
+
+    def __repr__(self):
+        return f"{self.id} - {self.inputs}"
+
+
 
 @tasks_bp.route('/tasks', methods = ['POST'])
 def add_task():
@@ -45,15 +60,43 @@ def add_task():
     else:
         inputs = request.json['inputs']
 
+    # Check if inputs already exist in Input table
+    input_obj = Input.query.filter_by(inputs=inputs).first()
+
+    if not input_obj:
+        input_obj = Input(inputs = inputs)
+        db_tasks.session.add(input_obj)
+        db_tasks.session.commit()
+
     task = Task(
-        inputs = inputs,
+        inputs = input_obj.id,
         runtime = runtime,
         name = request.json['name'] 
     )
+
+
     db_tasks.session.add(task)
     db_tasks.session.commit()
     return {'id': task.id}
-   
+
+
+# FIXME: Inpues should be transformed to a common format
+@tasks_bp.route('/tasks/<id>', methods=['PUT'])
+def update_task(id):
+    '''
+    Any of the attributes of a task can be updated on its own
+    '''
+    task = Task.query.get_or_404(id)
+    # Some information is known after the task is posted and runs
+    if 'runtime' in request.json:
+        task.runtime = int(request.json['runtime'])
+    # May want to rename tasks
+    if 'name' in request.json:
+        task.name = str(request.json['name'])
+
+    db_tasks.session.commit()
+    return {'message': 'Task updated'}
+
 @tasks_bp.route('/tasks')
 def get_tasks():
     tasks = Task.query.all()
@@ -75,28 +118,25 @@ def get_task(id):
     task = Task.query.get_or_404(id)
     return {'inputs': task.inputs, 'runtime': task.runtime, 'name': task.name}
 
+@tasks_bp.route('/inputs')
+def get_inputs():
+    inputs = Input.query.all()
+    inputs_data = []
+    for inp in inputs:
+        inputs_data.append(
+            {
+                'id': inp.id,
+                'inputs': inp.inputs
+            }
+        )
+    return {'inputs': inputs_data}
 
-# FIXME: Inpues should be transformed to a common format
-@tasks_bp.route('/tasks/<id>', methods=['PUT'])
-def update_task(id):
-    '''
-    Any of the attributes of a task can be updated on its own
-    '''
-    task = Task.query.get_or_404(id)
-    if 'inputs' in request.json:
-        inputs = request.json['inputs']
-        if type(inputs) == str:
-            task.inputs = inputs
-        else:
-            task.inputs = json.dumps(request.json['inputs'])
-            
-    if 'runtime' in request.json:
-        task.runtime = int(request.json['runtime'])
-    if 'name' in request.json:
-        task.runtime = str(request.json['name'])
 
-    db_tasks.session.commit()
-    return {'message': 'Task updated'}
+@tasks_bp.route('/input/<id>')
+def get_input(id):
+    inp = Input.query.get_or_404(id)
+    return {'inputs': inp.inputs}
+
 
 @tasks_bp.route('/tasks/<id>', methods=['DELETE'])
 def delete_task(id):
@@ -106,9 +146,31 @@ def delete_task(id):
     return {'message': 'Task deleted'}
 
 
+@tasks_bp.route('/inputs/<id>', methods=['DELETE'])
+def delete_input(id):
+    # Check if the input is referenced by any task
+    task = Task.query.filter(Task.inputs_id == id).first()
+    if task is not None:
+        return {'message': 'Cannot delete input. It is referenced by a task.'}, 400
+    
+    # Delete the input if no task references it
+    input_to_delete = Input.query.get_or_404(id)
+    db_tasks.session.delete(input_to_delete)
+    db_tasks.session.commit()
+    return {'message': 'Input deleted'}
+
+
 @tasks_bp.route('/tasks/table', methods=['GET'])
 def tasks_table():
     tasks = Task.query.all()
     tasks_df = pd.read_sql(str(Task.__table__), db_tasks.engine)
     html_table = tasks_df.to_html(index=False)
+    return render_template('index.html', content=html_table)
+
+
+@tasks_bp.route('/inputs/table', methods=['GET'])
+def inputs_table():
+    inputs = Input.query.all()
+    inputs_df = pd.read_sql(str(Input.__table__), db_tasks.engine)
+    html_table = inputs_df.to_html(index=False)
     return render_template('index.html', content=html_table)

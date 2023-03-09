@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 import ml
-from tasks_bp import db_tasks_path, tasks_table_name
+from tasks_bp import db_tasks_path, tasks_table_name, inputs_table_name
 
 models_bp = Blueprint('models_bp', __name__, static_folder= "static") #, template_folder = "templates")
 
