@@ -75,12 +75,12 @@ def register_function(func):
     return wrapper
 
 
-def train_runtime_prediction_model(task_name):
+def train_runtime_prediction_model(task_name, features, target):
     model_json = {
         "model_name": task_name + '_inputs_runtime',
         "task_name": task_name,
-        "features": ["inputs"],
-        "target": "runtime"
+        "features": features,
+        "target": target
     }
     response = requests.post(MODELS_URL, json = model_json)
     return response.json()['id']

@@ -16,18 +16,21 @@ TASK_JSON: dict = {
     'name': 'test-task-name'
 }
 
-MODEL_JSON: dict = {
-    "model_name": "my-model",
-    "task_name":run_dummy_task.TASK_NAME,
-    "features": ["inputs"],
-    "target": "runtime"
-}
 
 MODEL_INPUTS: dict = {
     'input_1': 1,
     'input_2': 2,
-    'input_3': 3
+    'input_3': 3,
+    'input_str': 'aa'
 }
+
+MODEL_JSON: dict = {
+    "model_name": "my-model",
+    "task_name":run_dummy_task.TASK_NAME,
+    "features": ['input_1', 'input_2', 'input_3', 'input_str'],
+    "target": "runtime"
+}
+
 
 MODEL_X: dict = {
     "X": pd.DataFrame([MODEL_INPUTS], columns = MODEL_INPUTS.keys()).to_json()

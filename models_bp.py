@@ -108,9 +108,19 @@ def get_model(id):
 @models_bp.route('/models/<id>/predict')
 def get_model_prediction(id):
     model = Model.query.get_or_404(id)
+    model_features = json.loads(model.features)
     # Needs to be a dataframe to be compatible with the machine learning model
     data = pd.read_json(request.json['X'])
+    data_columns = data.columns
+    # If features are missing in data it will complete them with NaN values
+    data = data.reindex(columns = model_features, fill_value = None)
 
+    # Check if there were any missing columns and print a warning if there were
+    missing_features = set(model_features) - set(data_columns)
+    if missing_features:
+        print(f"Warning: The following features were missing in the data: {missing_features}")
+        data[list(missing_features)] = None # fill_value = None does not seem to work well
+    
     with open(model.path, 'rb') as file:
         model = pickle.load(file)
 

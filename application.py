@@ -14,6 +14,10 @@ Cant use resource name for training purposes since resource could be edited
 - Could we save resource name and session and use that to retrieve the resource properties?
 - Resource properties could be number of CPUs, Mem, instance type, cloud, etc
 - We should support an aribitrary number of resource properties like we support an arbitrary number of task inputs
+- How about onprem?
+
+If the task inputs are changed we cannot predict the new task
+
 """
 
 import json

@@ -26,9 +26,9 @@ def read_data(db_path, table_name, task_name, columns):
     query = f"SELECT {columns} FROM {table_name} WHERE name = '{task_name}'"
     return pd.read_sql(query, engine)
 
-def expand_inputs(df):
-    df['inputs'] = df['inputs'].apply(json.loads)
-    return df
+def get_inputs_df(df):
+    df = df.apply(json.loads)
+    return pd.DataFrame(df.to_list())
 
 def get_numerical_and_categorical(data):
     features = list(data.columns) #.remove(target)
@@ -42,23 +42,28 @@ def get_numerical_and_categorical(data):
 
     return numerical_features, categorical_features
 
-def get_X_y(df, features, target):
-    df = expand_inputs(df)
-    X = pd.DataFrame(df['inputs'].to_list())
+def get_X(df, features):
+    df_inputs = get_inputs_df(df['inputs'])
+    # FIXME merge resource information HERE
+    X = df_inputs
     numerical, categorical = get_numerical_and_categorical(X)
-    y = df[target]
-    return X, y, numerical, categorical
+    return X, numerical, categorical
 
 def train_model(X_train, y_train, numerical, categorical, hyperparameter_optimization = False):
     
     numeric_transformer = Pipeline(
         steps = [
-            ('imputer', SimpleImputer(strategy='median')),
+            ('imputer', SimpleImputer(strategy = 'median')),
             ('scaler', MinMaxScaler())
         ]
     )
 
-    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+    categorical_transformer = Pipeline(
+        steps = [
+            ('imputer', SimpleImputer(strategy = 'most_frequent')),
+            ('ohe', OneHotEncoder(handle_unknown = 'ignore'))
+        ]
+    )
 
     preprocessor = ColumnTransformer(
         transformers = [
@@ -97,11 +102,18 @@ def save_model(model, model_path):
     with open(model_path, 'wb') as output:
         pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
 
-def create_model(db_path, table_name, task_name, features, target, model_path):
-    columns = features + [target]
+def get_data(db_path, table_name, task_name, features, target):
+    columns = ['inputs', target]
     df = read_data(db_path, table_name, task_name, columns)
-    X, y, numerical, categorical = get_X_y(df, features, target)
+    # Remove rows with non-numeric values on the target column
+    df = df[pd.to_numeric(df[target], errors='coerce').notna()]
+    X, numerical, categorical = get_X(df, features)
+    y = df[target]
     X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle = True)
+    return X_train, X_test, y_train, y_test, numerical, categorical
+
+def create_model(db_path, table_name, task_name, features, target, model_path):
+    X_train, X_test, y_train, y_test, numerical, categorical = get_data(db_path, table_name, task_name, features, target)
     model = train_model(X_train, y_train, numerical, categorical)
     save_model(model, model_path)
     score = model.score(X_test, y_test)
@@ -109,7 +121,7 @@ def create_model(db_path, table_name, task_name, features, target, model_path):
 
 if __name__ == '__main__':
     table_name = 'task'
-    features = ['inputs']
+    features = ['input_1', 'input_2', 'input_3']
     target = 'runtime'
     task_name = 'sleep_geometric_mean_123'
     db_path = 'sqlite:////home/avidalto/projects/2023/register_task/tasks.db'
