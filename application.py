@@ -27,7 +27,6 @@ Register task:
 import json
 
 from flask import Flask, render_template
-from flask_migrate import Migrate
 
 
 from tasks_bp import tasks_bp, db_tasks, db_tasks_path

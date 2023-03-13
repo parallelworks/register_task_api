@@ -7,8 +7,7 @@ import pandas as pd
 
 import numpy as np
 
-import ml
-from tasks_bp import db_tasks_path, tasks_table_name, inputs_table_name
+import create_model
 
 models_bp = Blueprint('models_bp', __name__, static_folder= "static") #, template_folder = "templates")
 
@@ -57,10 +56,7 @@ def add_model():
     db_models.session.commit()
 
     model.path = os.path.join(models_directory, str(model.id) + '.pkl')
-
-    model.score = ml.create_model.create_model(
-        db_tasks_path, 
-        tasks_table_name, 
+    model.score = create_model.create_model(
         model.task_name, 
         features, 
         model.target, 

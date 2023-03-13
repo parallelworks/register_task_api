@@ -11,16 +11,17 @@ tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static")
 db_tasks = SQLAlchemy()
 
 db_tasks_path = 'sqlite:///tasks.db'
-tasks_table_name = 'task' 
-inputs_table_name = 'input'
-
+TASKS_TABLE_NAME: str = 'task' 
+INPUTS_TABLE_NAME: str = 'input'
+# It is assumed that the Task class has a <table_name>_id column used for merging data
+TASKS_TABLE_RELATIONSHIP = [INPUTS_TABLE_NAME]
 
 class Task(db_tasks.Model):
-    __tablename__ = tasks_table_name
+    __tablename__ = TASKS_TABLE_NAME
     id = db_tasks.Column(db_tasks.Integer, primary_key = True)
     name = db_tasks.Column(db_tasks.String(80), nullable = False)
     runtime = db_tasks.Column(db_tasks.Integer, nullable = True)
-    inputs = db_tasks.Column(db_tasks.Integer, db_tasks.ForeignKey('input.id'), nullable=True)
+    input_id = db_tasks.Column(db_tasks.Integer, db_tasks.ForeignKey('input.id'), nullable=True)
     input = db_tasks.relationship('Input', backref='tasks')
 
     def __repr__(self):
@@ -28,7 +29,7 @@ class Task(db_tasks.Model):
 
 
 class Input(db_tasks.Model):
-    __tablename__ = inputs_table_name
+    __tablename__ = INPUTS_TABLE_NAME
     id = db_tasks.Column(db_tasks.Integer, primary_key = True)
     inputs =  db_tasks.Column(db_tasks.String(800), nullable = False, unique = True)
     #tasks = db_tasks.relationship('Task', backref='input', lazy=True)
@@ -69,7 +70,7 @@ def add_task():
         db_tasks.session.commit()
 
     task = Task(
-        inputs = input_obj.id,
+        input_id = input_obj.id,
         runtime = runtime,
         name = request.json['name'] 
     )
@@ -105,7 +106,7 @@ def get_tasks():
         tasks_data.append(
             {
                 'id': task.id,
-                'inputs': task.inputs,
+                'input_id': task.input_id,
                 'runtime': task.runtime,
                 'name': task.name
             }
@@ -116,7 +117,7 @@ def get_tasks():
 @tasks_bp.route('/tasks/<id>')
 def get_task(id):
     task = Task.query.get_or_404(id)
-    return {'inputs': task.inputs, 'runtime': task.runtime, 'name': task.name}
+    return {'input_id': task.input_id, 'runtime': task.runtime, 'name': task.name}
 
 @tasks_bp.route('/inputs')
 def get_inputs():
@@ -149,7 +150,7 @@ def delete_task(id):
 @tasks_bp.route('/inputs/<id>', methods=['DELETE'])
 def delete_input(id):
     # Check if the input is referenced by any task
-    task = Task.query.filter(Task.inputs_id == id).first()
+    task = Task.query.filter(Task.input_id == id).first()
     if task is not None:
         return {'message': 'Cannot delete input. It is referenced by a task.'}, 400
     

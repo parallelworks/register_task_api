@@ -16,15 +16,7 @@ from sklearn.model_selection import train_test_split
 
 from skopt import BayesSearchCV
 
-
-def read_data(db_path, table_name, task_name, columns):
-    columns = ', '.join(columns)
-    engine = create_engine(db_path)
-    # list all tables in the database
-    #table_names = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", engine)
-    #print(table_names)
-    query = f"SELECT {columns} FROM {table_name} WHERE name = '{task_name}'"
-    return pd.read_sql(query, engine)
+from tasks_bp import db_tasks_path, TASKS_TABLE_NAME, TASKS_TABLE_RELATIONSHIP
 
 def get_inputs_df(df):
     df = df.apply(json.loads)
@@ -102,9 +94,26 @@ def save_model(model, model_path):
     with open(model_path, 'wb') as output:
         pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
 
-def get_data(db_path, table_name, task_name, features, target):
+
+def get_tasks_df(task_name):
+    engine = create_engine(db_tasks_path)
+    # list all tables in the database````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
+    #table_names = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", engine)
+    #print(table_names)
+    task_query = f"SELECT * FROM {TASKS_TABLE_NAME} WHERE name = '{task_name}'"
+    task_df = pd.read_sql(task_query, engine, index_col = 'id')
+    for table_name in TASKS_TABLE_RELATIONSHIP:
+        query = f"SELECT * FROM {table_name}"
+        df = pd.read_sql(query, engine, index_col = 'id')
+        left_on = table_name + '_id'
+        task_df = pd.merge(task_df, df, how='left', left_on=left_on, right_index = True).drop(columns = [left_on])
+
+    return task_df
+
+
+def get_data(task_name, features, target):
     columns = ['inputs', target]
-    df = read_data(db_path, table_name, task_name, columns)
+    df = get_tasks_df(task_name)
     # Remove rows with non-numeric values on the target column
     df = df[pd.to_numeric(df[target], errors='coerce').notna()]
     X, numerical, categorical = get_X(df, features)
@@ -112,24 +121,24 @@ def get_data(db_path, table_name, task_name, features, target):
     X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle = True)
     return X_train, X_test, y_train, y_test, numerical, categorical
 
-def create_model(db_path, table_name, task_name, features, target, model_path):
-    X_train, X_test, y_train, y_test, numerical, categorical = get_data(db_path, table_name, task_name, features, target)
+def create_model(task_name, features, target, model_path):
+    X_train, X_test, y_train, y_test, numerical, categorical = get_data(task_name, features, target)
     model = train_model(X_train, y_train, numerical, categorical)
     save_model(model, model_path)
     score = model.score(X_test, y_test)
     return score
 
 if __name__ == '__main__':
-    table_name = 'task'
+    db_tasks_path = 'sqlite:///tasks.db'
+
     features = ['input_1', 'input_2', 'input_3']
     target = 'runtime'
     task_name = 'sleep_geometric_mean_123'
-    db_path = 'sqlite:////home/avidalto/projects/2023/register_task/tasks.db'
     model_path = 'models/predict-{target}-with-{features}-for-{task_name}.pkl'.format(
         target = target,
         features = '-'.join(features),
         task_name = task_name
     )
 
-    score = create_model(db_path, table_name, task_name, features, target, model_path)
+    score = create_model(task_name, features, target, model_path)
     print(score)
