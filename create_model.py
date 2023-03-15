@@ -95,7 +95,10 @@ def save_model(model, model_path):
         pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
 
 
-def get_tasks_df(task_name):
+def get_data_df(task_name):
+    '''
+    Merges all the tables referenced by the task table into a single dataframe
+    '''
     engine = create_engine(db_tasks_path)
     # list all tables in the database````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
     #table_names = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", engine)
@@ -103,17 +106,19 @@ def get_tasks_df(task_name):
     task_query = f"SELECT * FROM {TASKS_TABLE_NAME} WHERE name = '{task_name}'"
     task_df = pd.read_sql(task_query, engine, index_col = 'id')
     for table_name in TASKS_TABLE_RELATIONSHIP:
-        query = f"SELECT * FROM {table_name}"
-        df = pd.read_sql(query, engine, index_col = 'id')
-        left_on = table_name + '_id'
-        task_df = pd.merge(task_df, df, how='left', left_on=left_on, right_index = True).drop(columns = [left_on])
+        id_col = table_name + '_id'
+        id_list = task_df[id_col].unique().tolist()
+        id_str = ','.join(str(id) for id in id_list)
+        query = f"SELECT * FROM {table_name} WHERE id IN ({id_str})"
+        df = pd.read_sql(query, engine, index_col='id')
+        task_df = pd.merge(task_df, df, how='left', left_on=id_col, right_index=True).drop(columns=[id_col])
 
     return task_df
 
 
 def get_data(task_name, features, target):
     columns = ['inputs', target]
-    df = get_tasks_df(task_name)
+    df = get_data_df(task_name)
     # Remove rows with non-numeric values on the target column
     df = df[pd.to_numeric(df[target], errors='coerce').notna()]
     X, numerical, categorical = get_X(df, features)
