@@ -6,6 +6,8 @@ from flask_migrate import Migrate
 # Only required to display the data 
 import pandas as pd
 
+from typing import List
+
 tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static")
 
 db_tasks = SQLAlchemy()
@@ -17,7 +19,22 @@ RESOURCES_TABLE_NAME: str = 'resource'
 
 
 # It is assumed that the Task class has a <table_name>_id column used for merging data
-TASKS_TABLE_RELATIONSHIP = [INPUTS_TABLE_NAME]
+def dbmodel_to_dataframe(dbmodel: db_tasks.Model, ids: List[int] = None, columns: List[str] = None):
+    if ids:
+        # FIXME: Change to avoid loading all the columns!
+        df = pd.read_sql(
+            dbmodel.query.filter(dbmodel.id.in_(ids)).statement, 
+            db_tasks.engine, 
+            index_col = 'id'
+        )
+        if columns:
+            return df[columns]
+        return df
+    else:
+        return pd.read_sql(str(dbmodel.__table__), db_tasks.engine, index_col = 'id', columns = columns)
+    
+
+
 
 class Task(db_tasks.Model):
     __tablename__ = TASKS_TABLE_NAME
@@ -32,6 +49,9 @@ class Task(db_tasks.Model):
     def __repr__(self):
         return f"{self.id} - {self.name} - {self.runtime} - {self.input_id}"
 
+    @classmethod
+    def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
+        return dbmodel_to_dataframe(self, ids = ids, columns = columns)
 
 class Input(db_tasks.Model):
     __tablename__ = INPUTS_TABLE_NAME
@@ -41,6 +61,14 @@ class Input(db_tasks.Model):
     def __repr__(self):
         return f"{self.id} - {self.inputs}"
     
+    @classmethod
+    def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
+        df = dbmodel_to_dataframe(self, ids = ids)
+        df = pd.DataFrame(df['inputs'].apply(json.loads).to_list())
+        if columns:
+            return df[columns]
+        return df
+
 
 class Resource(db_tasks.Model):
     __tablename__ = RESOURCES_TABLE_NAME
@@ -53,6 +81,13 @@ class Resource(db_tasks.Model):
 
     def __repr__(self):
         return f"{self.id} - {self.name} - {self.session} - {self.node}"
+
+    @classmethod
+    def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
+        return dbmodel_to_dataframe(self, ids = ids, columns = columns)
+
+
+TASKS_TABLE_RELATIONSHIP = [Input]
 
 
 def json2str(obj):
@@ -187,10 +222,9 @@ def delete_input(id):
     db_tasks.session.commit()
     return {'message': 'Input deleted'}
 
-def render_table(model: db_tasks.Model):
-    models = model.query.all()
-    models_df = pd.read_sql(str(model.__table__), db_tasks.engine)
-    html_table = models_df.to_html(index=False)
+def render_table(dbmodel: db_tasks.Model):
+    model_df = dbmodel.to_dataframe()
+    html_table = model_df.to_html(index=False)
     return render_template('index.html', content=html_table)
 
 @tasks_bp.route('/tasks/table', methods=['GET'])

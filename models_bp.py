@@ -44,13 +44,20 @@ def add_model():
     else:
         features_str = features
 
+    target = request.json['target']
+    if not isinstance(target, str):
+        target_str = json.dumps(target)
+    else:
+        target_str = target
+    
+
     # FIXME: We may also have many targets
 
     model = Model(
         model_name = request.json['model_name'],
         task_name = request.json['task_name'],
         features = features_str,
-        target = request.json['target']
+        target = target_str
     )
     db_models.session.add(model)
     db_models.session.commit()
@@ -59,7 +66,7 @@ def add_model():
     model.score = create_model.create_model(
         model.task_name, 
         features, 
-        model.target, 
+        target, 
         model.path
     )
     db_models.session.add(model)

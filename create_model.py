@@ -18,9 +18,6 @@ from skopt import BayesSearchCV
 
 from tasks_bp import db_tasks_path, TASKS_TABLE_NAME, TASKS_TABLE_RELATIONSHIP
 
-def get_inputs_df(df):
-    df = df.apply(json.loads)
-    return pd.DataFrame(df.to_list())
 
 def get_numerical_and_categorical(data):
     features = list(data.columns) #.remove(target)
@@ -35,9 +32,7 @@ def get_numerical_and_categorical(data):
     return numerical_features, categorical_features
 
 def get_X(df, features):
-    df_inputs = get_inputs_df(df['inputs'])
-    # FIXME merge resource information HERE
-    X = df_inputs
+    X = df[features]
     numerical, categorical = get_numerical_and_categorical(X)
     return X, numerical, categorical
 
@@ -95,7 +90,7 @@ def save_model(model, model_path):
         pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
 
 
-def get_data_df(task_name):
+def get_data_df(task_name, features):
     '''
     Merges all the tables referenced by the task table into a single dataframe
     '''
@@ -105,23 +100,21 @@ def get_data_df(task_name):
     #print(table_names)
     task_query = f"SELECT * FROM {TASKS_TABLE_NAME} WHERE name = '{task_name}'"
     task_df = pd.read_sql(task_query, engine, index_col = 'id')
-    for table_name in TASKS_TABLE_RELATIONSHIP:
-        id_col = table_name + '_id'
+    for table in TASKS_TABLE_RELATIONSHIP:
+        id_col = table.__tablename__ + '_id'
         id_list = task_df[id_col].unique().tolist()
-        id_str = ','.join(str(id) for id in id_list)
-        query = f"SELECT * FROM {table_name} WHERE id IN ({id_str})"
-        df = pd.read_sql(query, engine, index_col='id')
-        task_df = pd.merge(task_df, df, how='left', left_on=id_col, right_index=True).drop(columns=[id_col])
+        df = table.to_dataframe(ids = id_list, columns = features[table.__tablename__])
+        task_df = pd.merge(task_df, df, how = 'left', left_on = id_col, right_index = True).drop(columns = [id_col])
 
     return task_df
 
 
 def get_data(task_name, features, target):
-    columns = ['inputs', target]
-    df = get_data_df(task_name)
+    df = get_data_df(task_name, features)
     # Remove rows with non-numeric values on the target column
     df = df[pd.to_numeric(df[target], errors='coerce').notna()]
-    X, numerical, categorical = get_X(df, features)
+    X = df[features['input']]
+    numerical, categorical = get_numerical_and_categorical(df[features['input']])
     y = df[target]
     X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle = True)
     return X_train, X_test, y_train, y_test, numerical, categorical

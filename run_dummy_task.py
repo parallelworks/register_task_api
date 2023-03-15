@@ -52,7 +52,9 @@ def train_model():
     print(f'Training model for task {TASK_NAME}')
     model_id = utils.train_runtime_prediction_model(
         TASK_NAME,
-        features = ['input_1', 'input_2', 'input_3', 'input_str'],
+        features = {
+            'input': ['input_1', 'input_2', 'input_3', 'input_str']
+        },
         target = 'runtime'
     )
     print(f'\nModel id: {model_id}')
@@ -95,7 +97,7 @@ def validate_predictions_with_missing_features(model_id):
 
 def main():
     print('\nRegistering tasks')
-    register_tasks()
+    #register_tasks()
     print('\nTraining model')
     model_id = train_model()
     print('\nValidating predictions')
