@@ -13,7 +13,6 @@ db_tasks = SQLAlchemy()
 db_tasks_path = 'sqlite:///tasks.db'
 TASKS_TABLE_NAME: str = 'task' 
 INPUTS_TABLE_NAME: str = 'input'
-RESOURCES_TABLE_NAME: str = 'resource'
 
 # It is assumed that the Task class has a <table_name>_id column used for merging data
 TASKS_TABLE_RELATIONSHIP = [INPUTS_TABLE_NAME]
@@ -37,15 +36,6 @@ class Input(db_tasks.Model):
 
     def __repr__(self):
         return f"{self.id} - {self.inputs}"
-
-class Input(db_tasks.Model):
-    __tablename__ = INPUTS_TABLE_NAME
-    id = db_tasks.Column(db_tasks.Integer, primary_key = True)
-    inputs =  db_tasks.Column(db_tasks.String(800), nullable = False, unique = True)
-
-    def __repr__(self):
-        return f"{self.id} - {self.inputs}"
-
 
 @tasks_bp.route('/tasks', methods = ['POST'])
 def add_task():
