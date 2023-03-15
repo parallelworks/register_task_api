@@ -86,21 +86,22 @@ def add_task():
     else:
         runtime = None
 
-    if 'resource' in request.json:
-        resource_def = json2str(request.json['resource'])
-        resource_obj = Resource(**resource_def)
-
     inputs = json2str(request.json['inputs'])
-
-    # Check if inputs already exist in Input table
     input_obj = add_if_new({'inputs': inputs}, Input)
+
+    if 'resource' in request.json:
+        resource_obj = add_if_new(request.json['resource'], Resource)
+        resource_id = resource_obj.id
+    else:
+        # Can still register a task with no defined resource
+        resource_id = None
 
     task = Task(
         input_id = input_obj.id,
+        resource_id = resource_id,
         runtime = runtime,
         name = request.json['name'] 
     )
-
 
     db_tasks.session.add(task)
     db_tasks.session.commit()
@@ -186,18 +187,20 @@ def delete_input(id):
     db_tasks.session.commit()
     return {'message': 'Input deleted'}
 
+def render_table(model: db_tasks.Model):
+    models = model.query.all()
+    models_df = pd.read_sql(str(model.__table__), db_tasks.engine)
+    html_table = models_df.to_html(index=False)
+    return render_template('index.html', content=html_table)
 
 @tasks_bp.route('/tasks/table', methods=['GET'])
 def tasks_table():
-    tasks = Task.query.all()
-    tasks_df = pd.read_sql(str(Task.__table__), db_tasks.engine)
-    html_table = tasks_df.to_html(index=False)
-    return render_template('index.html', content=html_table)
-
+    return render_table(Task)
 
 @tasks_bp.route('/inputs/table', methods=['GET'])
 def inputs_table():
-    inputs = Input.query.all()
-    inputs_df = pd.read_sql(str(Input.__table__), db_tasks.engine)
-    html_table = inputs_df.to_html(index=False)
-    return render_template('index.html', content=html_table)
+    return render_table(Input)
+
+@tasks_bp.route('/resources/table', methods=['GET'])
+def resources_table():
+    return render_table(Resource)

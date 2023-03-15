@@ -6,9 +6,26 @@ import time
 import utils
 
 TASK_NAME: str = 'sleep_geometric_mean_123'
+RESOURCE: dict = {
+    'name': 'awsv2',
+    'session': '00004',
+    'node': 'compute',
+}
+
+# Register the task name and resource
+utils.task_info['sleep_geometric_mean'] = {
+    'name': TASK_NAME,
+    'resource': RESOURCE,
+}
+
+utils.task_info['sleep_geometric_mean_missing'] = {
+    'name': TASK_NAME,
+    'resource': RESOURCE
+}
+
 
 @utils.register_function
-def sleep_geometric_mean(input_1, input_2, input_3, input_str, task_name = None):
+def sleep_geometric_mean(input_1, input_2, input_3, input_str):
     """
     This task is meant to be a fake task that runs for [runtime] miliseconds.
     The runtime is random but depends on the input parameters. 
@@ -20,7 +37,7 @@ def sleep_geometric_mean(input_1, input_2, input_3, input_str, task_name = None)
     return int(1000*(time.time()-start))
 
 @utils.register_function
-def sleep_geometric_mean_missing(input_1, input_2, input_3, task_name = None):
+def sleep_geometric_mean_missing(input_1, input_2, input_3):
     """
     Same as sleep_geometric_mean but with a missing feature to test missing features
     """
@@ -52,7 +69,7 @@ def register_tasks():
         for y in range(0,11,4):
             for z in range(0,11,4):
                 for string in ['a', 'aa']:
-                    runtime = sleep_geometric_mean(x, y, z, string, task_name = TASK_NAME)
+                    runtime = sleep_geometric_mean(x, y, z, string)
                     print('Runtime [ms]', runtime)    
 
 
@@ -63,7 +80,7 @@ def validate_predictions(model_id):
                 for string in ['b', 'bb']:
                     inputs = {'input_1': x, 'input_2': y, 'input_3': z, 'input_str': string}
                     runtime_pred = utils.predict_runtime(model_id, inputs)
-                    runtime = sleep_geometric_mean(x, y, z, string, task_name = TASK_NAME)
+                    runtime = sleep_geometric_mean(x, y, z, string)
                     print('Runtime [ms]', runtime, 'Predicted [ms]', runtime_pred)
     
 
@@ -73,7 +90,7 @@ def validate_predictions_with_missing_features(model_id):
             for z in range(1,11,4):
                 inputs = {'input_1': x, 'input_2': y, 'input_3': z}
                 runtime_pred = utils.predict_runtime(model_id, inputs)
-                runtime = sleep_geometric_mean_missing(x, y, z, task_name = TASK_NAME)
+                runtime = sleep_geometric_mean_missing(x, y, z)
                 print('Runtime [ms]', runtime, 'Predicted [ms]', runtime_pred)
 
 def main():

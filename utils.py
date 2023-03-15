@@ -8,6 +8,8 @@ import pandas as pd
 
 from application import TASKS_URL, MODELS_URL
 
+task_info = {}
+
 def get_default_args(func):
     """
     Sample:
@@ -41,17 +43,24 @@ def convert_arguments_to_dict(func, args, kwargs):
 def register_function(func):
     def wrapper(*args, **kwargs):
         # Post task
-        inputs = convert_arguments_to_dict(func, args, kwargs)
-        if 'task_name' not in kwargs:
-            task_name = os.environ['USER'] + '-' + func.__name__
-        else:
-            task_name = kwargs['task_name']
-            del inputs['task_name']
+        post_info = {}
 
-        post_info = {
-            'name': task_name,
-            'inputs': inputs
-        }
+        inputs = convert_arguments_to_dict(func, args, kwargs)
+        post_info['inputs'] = inputs
+
+        # Set defaults:
+        task_name = func.__name__
+        task_resource = None
+
+        # Check task info registry
+        if func.__name__ in task_info:
+            if 'name' in task_info[func.__name__]:
+                task_name = task_info[func.__name__]['name']
+            if 'resource' in task_info[func.__name__]:
+                task_resource = task_info[func.__name__]['resource']
+                post_info['resource'] = task_resource
+
+        post_info['name'] = task_name
 
         post_response = requests.post(
             TASKS_URL, 
