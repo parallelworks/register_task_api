@@ -13,6 +13,8 @@ db_tasks = SQLAlchemy()
 db_tasks_path = 'sqlite:///tasks.db'
 TASKS_TABLE_NAME: str = 'task' 
 INPUTS_TABLE_NAME: str = 'input'
+RESOURCES_TABLE_NAME: str = 'resource'
+
 
 # It is assumed that the Task class has a <table_name>_id column used for merging data
 TASKS_TABLE_RELATIONSHIP = [INPUTS_TABLE_NAME]
@@ -24,9 +26,11 @@ class Task(db_tasks.Model):
     runtime = db_tasks.Column(db_tasks.Integer, nullable = True)
     input_id = db_tasks.Column(db_tasks.Integer, db_tasks.ForeignKey('input.id'), nullable=True)
     input = db_tasks.relationship('Input', backref='tasks')
+    resource_id = db_tasks.Column(db_tasks.Integer, db_tasks.ForeignKey('resource.id'), nullable=True)
+    resource = db_tasks.relationship('Resource', backref='tasks')
 
     def __repr__(self):
-        return f"{self.id} - {self.name}"
+        return f"{self.id} - {self.name} - {self.runtime} - {self.input_id}"
 
 
 class Input(db_tasks.Model):
@@ -36,6 +40,34 @@ class Input(db_tasks.Model):
 
     def __repr__(self):
         return f"{self.id} - {self.inputs}"
+    
+
+class Resource(db_tasks.Model):
+    __tablename__ = RESOURCES_TABLE_NAME
+    id = db_tasks.Column(db_tasks.Integer, primary_key = True)
+    name =  db_tasks.Column(db_tasks.String(80), nullable = False)
+    session =  db_tasks.Column(db_tasks.Integer, nullable = False)
+    # Controller or name of partition
+    node = db_tasks.Column(db_tasks.String(80), nullable = False)
+
+
+    def __repr__(self):
+        return f"{self.id} - {self.name} - {self.session} - {self.node}"
+
+
+def json2str(obj):
+    if type(obj) != str:
+        return json.dumps(obj)
+    else:
+        return obj
+    
+def add_if_new(params: dict, model: db_tasks.Model):
+    model_obj = model.query.filter_by(**params).first()
+    if not model_obj:
+        model_obj = model(**params)
+        db_tasks.session.add(model_obj)
+        db_tasks.session.commit()
+    return model_obj
 
 @tasks_bp.route('/tasks', methods = ['POST'])
 def add_task():
@@ -53,19 +85,15 @@ def add_task():
         runtime = int(request.json['runtime'])
     else:
         runtime = None
-    
-    if type(request.json['inputs']) != str:
-        inputs = json.dumps(request.json['inputs'])
-    else:
-        inputs = request.json['inputs']
+
+    if 'resource' in request.json:
+        resource_def = json2str(request.json['resource'])
+        resource_obj = Resource(**resource_def)
+
+    inputs = json2str(request.json['inputs'])
 
     # Check if inputs already exist in Input table
-    input_obj = Input.query.filter_by(inputs=inputs).first()
-
-    if not input_obj:
-        input_obj = Input(inputs = inputs)
-        db_tasks.session.add(input_obj)
-        db_tasks.session.commit()
+    input_obj = add_if_new({'inputs': inputs}, Input)
 
     task = Task(
         input_id = input_obj.id,
