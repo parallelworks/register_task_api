@@ -1,4 +1,5 @@
 import json, os, pickle
+from typing import List
 
 from flask import Blueprint, request, render_template
 from flask_sqlalchemy import SQLAlchemy
@@ -7,7 +8,7 @@ import pandas as pd
 
 import numpy as np
 
-import create_model
+import create_model, bp_utils
 
 models_bp = Blueprint('models_bp', __name__, static_folder= "static") #, template_folder = "templates")
 
@@ -27,6 +28,10 @@ class Model(db_models.Model):
     def __repr__(self):
         return f"{self.id} - {self.model_name} - {self.task_name} - {self.path} - {self.score}"
     
+    @classmethod
+    def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
+        return bp_utils.dbmodel_to_dataframe(db_models, self, ids = ids, columns = columns)
+
 
 @models_bp.route('/models', methods = ['POST'])
 def add_model():
@@ -144,8 +149,5 @@ def delete_model(id):
 
 
 @models_bp.route('/models/table', methods=['GET'])
-def models_table():
-    models = Model.query.all()
-    models_df = pd.read_sql(str(Model.__table__), db_models.engine)
-    html_table = models_df.to_html(index=False)
-    return render_template('index.html', content=html_table)
+def resources_table():
+    return bp_utils.render_table(Model)

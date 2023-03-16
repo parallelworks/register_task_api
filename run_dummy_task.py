@@ -97,7 +97,7 @@ def validate_predictions_with_missing_features(model_id):
 
 def main():
     print('\nRegistering tasks')
-    #register_tasks()
+    register_tasks()
     print('\nTraining model')
     model_id = train_model()
     print('\nValidating predictions')

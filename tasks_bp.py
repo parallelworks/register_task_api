@@ -1,4 +1,6 @@
 import json
+from typing import List
+
 from flask import Blueprint, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -6,7 +8,8 @@ from flask_migrate import Migrate
 # Only required to display the data 
 import pandas as pd
 
-from typing import List
+
+import bp_utils
 
 tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static")
 
@@ -16,25 +19,6 @@ db_tasks_path = 'sqlite:///tasks.db'
 TASKS_TABLE_NAME: str = 'task' 
 INPUTS_TABLE_NAME: str = 'input'
 RESOURCES_TABLE_NAME: str = 'resource'
-
-
-# It is assumed that the Task class has a <table_name>_id column used for merging data
-def dbmodel_to_dataframe(dbmodel: db_tasks.Model, ids: List[int] = None, columns: List[str] = None):
-    if ids:
-        # FIXME: Change to avoid loading all the columns!
-        df = pd.read_sql(
-            dbmodel.query.filter(dbmodel.id.in_(ids)).statement, 
-            db_tasks.engine, 
-            index_col = 'id'
-        )
-        if columns:
-            return df[columns]
-        return df
-    else:
-        return pd.read_sql(str(dbmodel.__table__), db_tasks.engine, index_col = 'id', columns = columns)
-    
-
-
 
 class Task(db_tasks.Model):
     __tablename__ = TASKS_TABLE_NAME
@@ -51,7 +35,7 @@ class Task(db_tasks.Model):
 
     @classmethod
     def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
-        return dbmodel_to_dataframe(self, ids = ids, columns = columns)
+        return bp_utils.dbmodel_to_dataframe(db_tasks, self, ids = ids, columns = columns)
 
 class Input(db_tasks.Model):
     __tablename__ = INPUTS_TABLE_NAME
@@ -62,9 +46,9 @@ class Input(db_tasks.Model):
         return f"{self.id} - {self.inputs}"
     
     @classmethod
-    def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
-        df = dbmodel_to_dataframe(self, ids = ids)
-        df = pd.DataFrame(df['inputs'].apply(json.loads).to_list())
+    def to_dataframe(cls, ids: List[int] = None, columns: List[str] = None):
+        df = bp_utils.dbmodel_to_dataframe(db_tasks, cls, ids=ids)
+        df = pd.json_normalize(df['inputs'].apply(json.loads)).rename_axis('id')
         if columns:
             return df[columns]
         return df
@@ -84,25 +68,11 @@ class Resource(db_tasks.Model):
 
     @classmethod
     def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
-        return dbmodel_to_dataframe(self, ids = ids, columns = columns)
+        return bp_utils.dbmodel_to_dataframe(db_tasks, self, ids = ids, columns = columns)
 
 
 TASKS_TABLE_RELATIONSHIP = [Input]
 
-
-def json2str(obj):
-    if type(obj) != str:
-        return json.dumps(obj)
-    else:
-        return obj
-    
-def add_if_new(params: dict, model: db_tasks.Model):
-    model_obj = model.query.filter_by(**params).first()
-    if not model_obj:
-        model_obj = model(**params)
-        db_tasks.session.add(model_obj)
-        db_tasks.session.commit()
-    return model_obj
 
 @tasks_bp.route('/tasks', methods = ['POST'])
 def add_task():
@@ -121,11 +91,11 @@ def add_task():
     else:
         runtime = None
 
-    inputs = json2str(request.json['inputs'])
-    input_obj = add_if_new({'inputs': inputs}, Input)
+    inputs = bp_utils.json2str(request.json['inputs'])
+    input_obj = bp_utils.add_if_new(db_tasks, Input, {'inputs': inputs})
 
     if 'resource' in request.json:
-        resource_obj = add_if_new(request.json['resource'], Resource)
+        resource_obj = bp_utils.add_if_new(db_tasks, Resource, request.json['resource'])
         resource_id = resource_obj.id
     else:
         # Can still register a task with no defined resource
@@ -222,19 +192,15 @@ def delete_input(id):
     db_tasks.session.commit()
     return {'message': 'Input deleted'}
 
-def render_table(dbmodel: db_tasks.Model):
-    model_df = dbmodel.to_dataframe()
-    html_table = model_df.to_html(index=False)
-    return render_template('index.html', content=html_table)
 
 @tasks_bp.route('/tasks/table', methods=['GET'])
 def tasks_table():
-    return render_table(Task)
+    return bp_utils.render_table(Task)
 
 @tasks_bp.route('/inputs/table', methods=['GET'])
 def inputs_table():
-    return render_table(Input)
+    return bp_utils.render_table(Input)
 
 @tasks_bp.route('/resources/table', methods=['GET'])
 def resources_table():
-    return render_table(Resource)
+    return bp_utils.render_table(Resource)
