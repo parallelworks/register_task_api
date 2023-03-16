@@ -9,7 +9,7 @@ TASK_NAME: str = 'sleep_geometric_mean_123'
 RESOURCE: dict = {
     'name': 'awsv2',
     'session': '00004',
-    'node': 'compute',
+    'partition': 'compute',
 }
 
 # Register the task name and resource

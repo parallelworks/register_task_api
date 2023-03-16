@@ -59,12 +59,12 @@ class Resource(db_tasks.Model):
     id = db_tasks.Column(db_tasks.Integer, primary_key = True)
     name =  db_tasks.Column(db_tasks.String(80), nullable = False)
     session =  db_tasks.Column(db_tasks.Integer, nullable = False)
-    # Controller or name of partition
-    node = db_tasks.Column(db_tasks.String(80), nullable = False)
+    # Partition name or None if controller
+    partition = db_tasks.Column(db_tasks.String(80), nullable = False)
 
 
     def __repr__(self):
-        return f"{self.id} - {self.name} - {self.session} - {self.node}"
+        return f"{self.id} - {self.name} - {self.session} - {self.partition}"
 
     @classmethod
     def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
