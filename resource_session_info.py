@@ -1,8 +1,8 @@
 import requests
 import os
-from dataclasses import dataclass, field
+from functools import partial
 
-N_PARSED_ATTRIBUTES: int = 2
+N_PARSED_PROPERTIES: int = 2
 CLIENT_HOST: str = os.environ['PARSL_CLIENT_HOST']
 KEY: str = os.environ['PW_API_KEY']
 USER: str = os.environ['PW_USER']
@@ -61,20 +61,20 @@ def get_partition_lines(properties_lines, partition):
                 return partition_lines
 
 
-def get_attributes_value(properties_lines):
-    attributes = {}
-    missing_attributes = N_PARSED_ATTRIBUTES
+def get_properties_from(properties_lines):
+    properties = {}
+    missing_properties = N_PARSED_PROPERTIES
 
     for line in properties_lines:
         if 'instance_type' in line:
-            attributes['instance_type'] = line.replace(" ", "").replace('"', '').split('=')[1]
-            missing_attributes += -1
+            properties['instance_type'] = line.replace(" ", "").replace('"', '').split('=')[1]
+            missing_properties += -1
         elif 'high_performance_networking' in line:
-            attributes['high_performance_networking'] = bool(line.replace(" ", "").replace('"', '').split('=')[1])
-            missing_attributes += -1
+            properties['high_performance_networking'] = bool(line.replace(" ", "").replace('"', '').split('=')[1])
+            missing_properties += -1
             
-        if missing_attributes == 0:
-            return attributes
+        if missing_properties == 0:
+            return properties
 
 
 def get_properties_lines(name, session):
@@ -86,43 +86,41 @@ def get_provider(properties_lines):
         if 'provider' in line:
             return line.split('=')[1]
 
-def get_controller_attributes(name, session):
+def get_properties(name, session, get_lines, mapping):
     properties_lines = get_properties_lines(name, session)
     provider = get_provider(properties_lines)
-    properties_lines = get_controller_lines(properties_lines)
+    properties_lines = get_lines(properties_lines)
     properties_lines = '\n'.join(properties_lines)
-    for orig,new in CONTROLLER_PROPERTIES_MAPPING[provider].items():
+    for orig,new in mapping[provider].items():
         properties_lines = properties_lines.replace(orig, new)
     properties_lines = properties_lines.split('\n')
-    return get_attributes_value(properties_lines)
+    return get_properties_from(properties_lines)
+
+def get_controller_properties(name, session):
+    return get_properties(name, session, get_controller_lines, CONTROLLER_PROPERTIES_MAPPING)
 
 
-def get_partition_attributes(name, session, partition):
-    properties_lines = get_properties_lines(name, session)
-    provider = get_provider(properties_lines)
-    properties_lines = get_partition_lines(properties_lines, partition)
-    properties_lines = '\n'.join(properties_lines)
-    for orig,new in PARTITION_PROPERTIES_MAPPING[provider].items():
-        properties_lines = properties_lines.replace(orig, new)
-    properties_lines = properties_lines.split('\n')
-    return get_attributes_value(properties_lines)
+def get_partition_properties(name, session, partition):
+    get_lines = partial(get_partition_lines, partition = partition)
+    return get_properties(name, session, get_lines, PARTITION_PROPERTIES_MAPPING)
+
 
 
 name = 'gcpslurmv2dev'
 session = '00095'
 partition = 'compute'
 
-aux = get_controller_attributes(name, session)
+aux = get_controller_properties(name, session)
 print(aux)
 
-aux = get_partition_attributes(name, session, partition)
+aux = get_partition_properties(name, session, partition)
 print(aux)
 
 name = 'awsv2'
 session = '00002'
 
-aux = get_controller_attributes(name, session)
+aux = get_controller_properties(name, session)
 print(aux)
 
-aux = get_partition_attributes(name, session, partition)
+aux = get_partition_properties(name, session, partition)
 print(aux)
