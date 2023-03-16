@@ -1,7 +1,7 @@
 import json, os, pickle
 from typing import List
 
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request
 from flask_sqlalchemy import SQLAlchemy
 
 import pandas as pd

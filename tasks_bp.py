@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
