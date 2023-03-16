@@ -27,8 +27,8 @@ MODEL_INPUTS: dict = {
 MODEL_JSON: dict = {
     "model_name": "my-model",
     "task_name":run_dummy_task.TASK_NAME,
-    "features": ['input_1', 'input_2', 'input_3', 'input_str'],
-    "target": "runtime"
+    "features": {'input': ['input_1', 'input_2', 'input_3', 'input_str']},
+    "target": {'task': "runtime"}
 }
 
 

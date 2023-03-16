@@ -90,7 +90,7 @@ def save_model(model, model_path):
         pickle.dump(model, output, pickle.HIGHEST_PROTOCOL)
 
 
-def get_data_df(task_name, features):
+def get_data_df(task_name, columns):
     '''
     Merges all the tables referenced by the task table into a single dataframe
     '''
@@ -101,21 +101,40 @@ def get_data_df(task_name, features):
     task_query = f"SELECT * FROM {TASKS_TABLE_NAME} WHERE name = '{task_name}'"
     task_df = pd.read_sql(task_query, engine, index_col = 'id')
     for table in TASKS_TABLE_RELATIONSHIP:
+        if table.__tablename__ not in columns:
+            continue
+
         id_col = table.__tablename__ + '_id'
         id_list = task_df[id_col].unique().tolist()
-        df = table.to_dataframe(ids = id_list, columns = features[table.__tablename__])
+        df = table.to_dataframe(ids = id_list, columns = columns[table.__tablename__])
         task_df = pd.merge(task_df, df, how = 'left', left_on = id_col, right_index = True).drop(columns = [id_col])
 
     return task_df
 
+def merge_features_and_target(features, target):
+    """
+    Merges the features and target dictionaries:
+    { table_name: [table_columns] }
+    """
+    columns = deepcopy(features)
+    for table, column in target.items():
+        if table in columns:
+            columns[table].append(column)
+        else:
+            columns[table] = [column]
+    return columns
 
 def get_data(task_name, features, target):
-    df = get_data_df(task_name, features)
+    columns = merge_features_and_target(features, target)
+    df = get_data_df(task_name, columns)
     # Remove rows with non-numeric values on the target column
-    df = df[pd.to_numeric(df[target], errors='coerce').notna()]
+    target_columns = [column for table,column in target.items()]
+    # FIXME: Need to change to generalize to multiple targets
+    # - Removes rows with non-numeric values
+    df = df[pd.to_numeric(df[target_columns[0]], errors='coerce').notna()]
     X = df[features['input']]
     numerical, categorical = get_numerical_and_categorical(df[features['input']])
-    y = df[target]
+    y = df[target_columns[0]]
     X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle = True)
     return X_train, X_test, y_train, y_test, numerical, categorical
 
@@ -125,18 +144,3 @@ def create_model(task_name, features, target, model_path):
     save_model(model, model_path)
     score = model.score(X_test, y_test)
     return score
-
-if __name__ == '__main__':
-    db_tasks_path = 'sqlite:///tasks.db'
-
-    features = ['input_1', 'input_2', 'input_3']
-    target = 'runtime'
-    task_name = 'sleep_geometric_mean_123'
-    model_path = 'models/predict-{target}-with-{features}-for-{task_name}.pkl'.format(
-        target = target,
-        features = '-'.join(features),
-        task_name = task_name
-    )
-
-    score = create_model(task_name, features, target, model_path)
-    print(score)

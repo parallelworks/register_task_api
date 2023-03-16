@@ -43,21 +43,11 @@ def add_model():
         "target": "runtime"
     }
     """
-    features = request.json['features']
-    if not isinstance(features, str):
-        features_str = json.dumps(features)
-    else:
-        features_str = features
 
-    target = request.json['target']
-    if not isinstance(target, str):
-        target_str = json.dumps(target)
-    else:
-        target_str = target
-    
 
+    features_str = bp_utils.json2str(request.json['features'])
+    target_str = bp_utils.json2str(request.json['target'])
     # FIXME: We may also have many targets
-
     model = Model(
         model_name = request.json['model_name'],
         task_name = request.json['task_name'],
@@ -70,8 +60,8 @@ def add_model():
     model.path = os.path.join(models_directory, str(model.id) + '.pkl')
     model.score = create_model.create_model(
         model.task_name, 
-        features, 
-        target, 
+        request.json['features'], 
+        request.json['target'], 
         model.path
     )
     db_models.session.add(model)
@@ -116,7 +106,8 @@ def get_model(id):
 @models_bp.route('/models/<id>/predict')
 def get_model_prediction(id):
     model = Model.query.get_or_404(id)
-    model_features = json.loads(model.features)
+    model_features = []
+    [ model_features.extend(columns) for table,columns in json.loads(model.features).items() ]
     # Needs to be a dataframe to be compatible with the machine learning model
     data = pd.read_json(request.json['X'])
     data_columns = data.columns

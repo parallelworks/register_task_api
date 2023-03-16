@@ -55,7 +55,7 @@ def train_model():
         features = {
             'input': ['input_1', 'input_2', 'input_3', 'input_str']
         },
-        target = 'runtime'
+        target = {'task': 'runtime'}
     )
     print(f'\nModel id: {model_id}')
     model_info = utils.get_model_info(model_id)

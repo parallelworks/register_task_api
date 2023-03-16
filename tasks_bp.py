@@ -71,7 +71,7 @@ class Resource(db_tasks.Model):
         return bp_utils.dbmodel_to_dataframe(db_tasks, self, ids = ids, columns = columns)
 
 
-TASKS_TABLE_RELATIONSHIP = [Input]
+TASKS_TABLE_RELATIONSHIP = [Input, Resource]
 
 
 @tasks_bp.route('/tasks', methods = ['POST'])
