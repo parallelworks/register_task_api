@@ -2,6 +2,8 @@ import requests
 import os
 from functools import partial
 
+import pandas as pd
+
 N_PARSED_PROPERTIES: int = 2
 CLIENT_HOST: str = os.environ['PARSL_CLIENT_HOST']
 KEY: str = os.environ['PW_API_KEY']
@@ -96,31 +98,28 @@ def get_properties(name, session, get_lines, mapping):
     properties_lines = properties_lines.split('\n')
     return get_properties_from(properties_lines)
 
-def get_controller_properties(name, session):
-    return get_properties(name, session, get_controller_lines, CONTROLLER_PROPERTIES_MAPPING)
 
+# Define a function to apply get_partition_properties to each row of the dataframe
+def get_properties_apply(row):
+    name = row['name']
+    session = "{:05d}".format(row['session'])
+    partition = row['partition']
+    if partition:
+        get_lines = partial(get_partition_lines, partition = partition)
+        properties_dict = get_properties(name, session, get_lines, PARTITION_PROPERTIES_MAPPING)
+    else:
+        properties_dict = get_properties(name, session, get_controller_lines, CONTROLLER_PROPERTIES_MAPPING)
 
-def get_partition_properties(name, session, partition):
-    get_lines = partial(get_partition_lines, partition = partition)
-    return get_properties(name, session, get_lines, PARTITION_PROPERTIES_MAPPING)
+    return pd.Series(properties_dict, name=f"{partition}_properties")
 
+if __name__ == '__main__':
+    name = 'gcpslurmv2dev'
+    session = 95
+    partition = 'compute'
+    name = 'awsv2'
+    session = 4
 
-
-name = 'gcpslurmv2dev'
-session = '00095'
-partition = 'compute'
-
-aux = get_controller_properties(name, session)
-print(aux)
-
-aux = get_partition_properties(name, session, partition)
-print(aux)
-
-name = 'awsv2'
-session = '00002'
-
-aux = get_controller_properties(name, session)
-print(aux)
-
-aux = get_partition_properties(name, session, partition)
-print(aux)
+    df = pd.DataFrame({'name': [name], 'session': [session], 'partition': [partition]})
+    print(df)
+    properties_df = df.apply(get_properties_apply, axis=1)
+    print(properties_df)

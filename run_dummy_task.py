@@ -53,7 +53,8 @@ def train_model():
     model_id = utils.train_runtime_prediction_model(
         TASK_NAME,
         features = {
-            'input': ['input_1', 'input_2', 'input_3', 'input_str']
+            'input': ['input_1', 'input_2', 'input_3', 'input_str'],
+            'resource': ['high_performance_networking', 'instance_type']
         },
         target = {'task': 'runtime'}
     )

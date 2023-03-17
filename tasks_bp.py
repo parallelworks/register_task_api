@@ -10,6 +10,7 @@ import pandas as pd
 
 
 import bp_utils
+import resource_session_info
 
 tasks_bp = Blueprint('tasks_bp', __name__, static_folder= "static")
 
@@ -62,13 +63,16 @@ class Resource(db_tasks.Model):
     # Partition name or None if controller
     partition = db_tasks.Column(db_tasks.String(80), nullable = False)
 
-
     def __repr__(self):
         return f"{self.id} - {self.name} - {self.session} - {self.partition}"
 
     @classmethod
     def to_dataframe(self, ids: List[int] = None, columns: List[str] = None):
-        return bp_utils.dbmodel_to_dataframe(db_tasks, self, ids = ids, columns = columns)
+        df = bp_utils.dbmodel_to_dataframe(db_tasks, self, ids = ids)
+        df_resource_info = df.apply(resource_session_info.get_properties_apply, axis=1)
+        if columns:
+            return df_resource_info[columns]
+        return df_resource_info
 
 
 TASKS_TABLE_RELATIONSHIP = [Input, Resource]

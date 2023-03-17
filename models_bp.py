@@ -44,7 +44,6 @@ def add_model():
     }
     """
 
-
     features_str = bp_utils.json2str(request.json['features'])
     target_str = bp_utils.json2str(request.json['target'])
     # FIXME: We may also have many targets
